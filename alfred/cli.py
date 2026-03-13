@@ -63,13 +63,13 @@ def search(query: str, limit: int = 10) -> None:
 	if not query.strip():
 		raise typer.BadParameter("Search query cannot be empty.")
 	if limit < 1:
-		raise typer.BadQuery("Limit must be at least 1.")
+		raise typer.BadParameter("Limit must be at least 1.")
 	
 	service = build_note_service()
 	notes = service.search(query=query.strip(), limit=limit)
 
 	if not notes:
-		typer.echo("No matching notes found")
+		typer.echo("No matching notes found.")
 		return
 	
 	display_notes(notes)
