@@ -4,7 +4,7 @@ from pathlib import Path
 
 from alfred.db import SQLiteConnectionFactory
 from alfred.repositories import NoteRepository
-from alfred.services import NoteService
+from alfred.services import NoteService, format_timestamp
 
 app = typer.Typer()
 
@@ -37,8 +37,7 @@ def list_notes(limit: int = 10) -> None:
 		return
 
 	for note in notes:
-		timestamp = datetime.fromisoformat(note["timestamp"])
-		pretty_timestamp = timestamp.strftime("%Y-%m-%d %H:%M UTC")
+		pretty_timestamp = format_timestamp(note["timestamp"])
 
 		print(f"[{note['id']}] {pretty_timestamp}")
 		print(f"	{note['text']}")

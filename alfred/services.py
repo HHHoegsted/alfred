@@ -1,3 +1,9 @@
+import datetime
+
+def format_timestamp(timestamp: str) -> str:
+    dt = datetime.fromisoformat(timestamp)
+    return dt.strftime("%Y-%m-%d %H:%M UTC")
+
 class NoteService:
 
 	def __init__(self, note_repository):
