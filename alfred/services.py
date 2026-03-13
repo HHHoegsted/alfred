@@ -1,5 +1,7 @@
-from datetime import datetime
 import sqlite3
+from datetime import datetime
+
+from alfred.repositories import NoteRepository
 
 
 def format_timestamp(timestamp: str) -> str:
@@ -8,7 +10,7 @@ def format_timestamp(timestamp: str) -> str:
 
 
 class NoteService:
-    def __init__(self, note_repository) -> None:
+    def __init__(self, note_repository: NoteRepository) -> None:
         self.note_repository = note_repository
 
     def capture(self, text: str) -> None:

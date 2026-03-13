@@ -1,9 +1,11 @@
-from datetime import datetime, timezone
 import sqlite3
+from datetime import datetime, timezone
+
+from alfred.db import SQLiteConnectionFactory
 
 
 class NoteRepository:
-    def __init__(self, connection_factory):
+    def __init__(self, connection_factory: SQLiteConnectionFactory) -> None:
         self.connection_factory = connection_factory
 
     def add(self, text: str) -> None:

@@ -26,12 +26,9 @@ def get_data_dir() -> Path:
 
 def build_note_service() -> NoteService:
     db_path = get_data_dir() / "alfred.db"
-
     db = SQLiteConnectionFactory(db_path)
     db.init_db()
-
     repo = NoteRepository(db)
-
     return NoteService(repo)
 
 
@@ -64,7 +61,7 @@ def list_notes(
     ),
 ) -> None:
     service = build_note_service()
-    notes = service.list_recent(limit=limit)
+    notes: list[sqlite3.Row] = service.list_recent(limit=limit)
 
     if not notes:
         typer.echo("No notes found.")
@@ -89,7 +86,7 @@ def search(
         raise typer.BadParameter("Search query cannot be empty.")
 
     service = build_note_service()
-    notes = service.search(query=cleaned_query, limit=limit)
+    notes: list[sqlite3.Row] = service.search(query=cleaned_query, limit=limit)
 
     if not notes:
         typer.echo("No matching notes found.")
