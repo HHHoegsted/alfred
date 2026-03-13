@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 
 def format_timestamp(timestamp: str) -> str:
     dt = datetime.fromisoformat(timestamp)

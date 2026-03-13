@@ -1,5 +1,4 @@
 import typer
-from datetime import datetime
 from pathlib import Path
 
 from alfred.db import SQLiteConnectionFactory
