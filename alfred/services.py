@@ -1,16 +1,21 @@
 from datetime import datetime
+import sqlite3
+
 
 def format_timestamp(timestamp: str) -> str:
     dt = datetime.fromisoformat(timestamp)
     return dt.strftime("%Y-%m-%d %H:%M UTC")
 
-class NoteService:
 
-	def __init__(self, note_repository):
-		self.note_repository = note_repository
-	
-	def capture(self, text: str):
-		self.note_repository.add(text)
-	
-	def list_recent(self, limit: int = 10):
-		return self.note_repository.list_recent(limit=limit)
+class NoteService:
+    def __init__(self, note_repository) -> None:
+        self.note_repository = note_repository
+
+    def capture(self, text: str) -> None:
+        self.note_repository.add(text)
+
+    def list_recent(self, limit: int = 10) -> list[sqlite3.Row]:
+        return self.note_repository.list_recent(limit=limit)
+
+    def search(self, query: str, limit: int = 10) -> list[sqlite3.Row]:
+        return self.note_repository.search(query=query, limit=limit)
