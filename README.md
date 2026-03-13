@@ -13,11 +13,14 @@ The project is intentionally built with a clean architecture so that the storage
 - Capture notes from the command line
 - Store notes in a local SQLite database
 - List recent notes
+- Search notes by text
+- Validate basic CLI input
 
 Example:
 
 uv run alfred capture "Remember to buy milk"  
 uv run alfred list
+uv run alfred search milk
 
 ---
 
@@ -66,9 +69,9 @@ Creates connections and initializes the SQLite database.
 
 The current storage backend is SQLite.
 
-The database file is created automatically in:
+The database file is created automatically in the user's home directory at:
 
-data/alfred.db
+    ~/.alfred/alfred.db
 
 Current schema:
 
@@ -100,7 +103,6 @@ uv run alfred list
 
 Planned features:
 
-- search notes
 - tagging
 - structured capture
 - automated digests
