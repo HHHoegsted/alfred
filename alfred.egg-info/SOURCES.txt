@@ -1,0 +1,11 @@
+README.md
+pyproject.toml
+alfred/__init__.py
+alfred/cli.py
+alfred/settings.py
+alfred.egg-info/PKG-INFO
+alfred.egg-info/SOURCES.txt
+alfred.egg-info/dependency_links.txt
+alfred.egg-info/entry_points.txt
+alfred.egg-info/requires.txt
+alfred.egg-info/top_level.txt

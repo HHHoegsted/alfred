@@ -1,0 +1,17 @@
+[project]
+name = "alfred"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "typer>=0.24.1",
+]
+[project.scripts]
+alfred = "alfred.cli:app"
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["alfred*"]
