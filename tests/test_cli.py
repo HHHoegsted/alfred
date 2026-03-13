@@ -47,7 +47,7 @@ def test_list_rejects_limit_below_one() -> None:
     result = runner.invoke(cli.app, ["list", "--limit", "0"])
 
     assert result.exit_code != 0
-    assert "Limit must be at least 1." in result.stderr
+    assert "0 is not in the range x>=1." in result.stderr
 
 
 def test_search_returns_matching_notes(tmp_path: Path, monkeypatch) -> None:
@@ -87,4 +87,4 @@ def test_search_rejects_limit_below_one() -> None:
     result = runner.invoke(cli.app, ["search", "milk", "--limit", "0"])
 
     assert result.exit_code != 0
-    assert "Limit must be at least 1." in result.stderr
+    assert "0 is not in the range x>=1." in result.stderr
