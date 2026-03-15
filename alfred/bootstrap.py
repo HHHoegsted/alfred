@@ -1,8 +1,16 @@
 from pathlib import Path
 
 from alfred.db import SQLiteConnectionFactory, SQLAlchemySessionFactory
-from alfred.repositories import DecisionRecordRepository, NoteRepository
-from alfred.services import DecisionRecordService, NoteService
+from alfred.repositories import (
+    DecisionRecordRepository,
+    NoteRepository,
+    PersonRepository,
+)
+from alfred.services import (
+    DecisionRecordService,
+    NoteService,
+    PersonService,
+)
 
 
 def get_data_dir() -> Path:
@@ -40,3 +48,10 @@ def build_decision_record_service(
     session = session_factory.get_session()
     repository = DecisionRecordRepository(session)
     return DecisionRecordService(repository)
+
+
+def build_person_service(data_dir: Path | None = None) -> PersonService:
+    session_factory = init_sqlalchemy(data_dir=data_dir)
+    session = session_factory.get_session()
+    repository = PersonRepository(session)
+    return PersonService(repository)

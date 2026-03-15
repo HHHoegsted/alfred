@@ -2,6 +2,7 @@ from pathlib import Path
 import sqlite3
 
 from alfred.bootstrap import build_decision_record_service, init_sqlalchemy
+from alfred.bootstrap import build_person_service
 
 
 def test_init_sqlalchemy_creates_decision_records_table(tmp_path: Path) -> None:
@@ -47,3 +48,21 @@ def test_build_decision_record_service_returns_working_service(
 
     assert len(records) == 1
     assert records[0].summary == "Keep Alfred local-first"
+
+
+def test_build_person_service_returns_working_service(tmp_path) -> None:
+    service = build_person_service(data_dir=tmp_path)
+
+    created = service.register(
+        name="Sara",
+        is_household_member=True,
+    )
+    people = service.list_recent()
+
+    assert created.id is not None
+    assert created.name == "Sara"
+    assert created.is_household_member is True
+
+    assert len(people) == 1
+    assert people[0].name == "Sara"
+    assert people[0].is_household_member is True
