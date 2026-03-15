@@ -17,6 +17,7 @@ app = typer.Typer(help="Alfred is a local-first CLI for capturing and reviewing 
 app.add_typer(decision_app, name="decision")
 app.add_typer(person_app, name="person")
 app.add_typer(notes_app, name="note")
+# single commands
 app.command("help-memory")(help_memory)
 
 
