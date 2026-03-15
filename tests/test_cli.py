@@ -110,9 +110,8 @@ def test_search_rejects_limit_below_one() -> None:
     assert result.exit_code != 0
     assert "0 is not in the range x>=1." in result.stderr
 
-def test_person_add_registers_household_member(monkeypatch, tmp_path) -> None:
-    runner = CliRunner()
 
+def test_person_add_registers_household_member(monkeypatch, tmp_path) -> None:
     original_build_person_service = cli.build_person_service
 
     def build_person_service_for_test():
@@ -139,12 +138,11 @@ def test_person_add_registers_household_member(monkeypatch, tmp_path) -> None:
     assert "Person registered." in result.stdout
     assert "Sara" in result.stdout
 
+
 def test_person_list_displays_people_and_household_status(
     monkeypatch,
     tmp_path,
 ) -> None:
-    runner = CliRunner()
-
     original_build_person_service = cli.build_person_service
 
     def build_person_service_for_test():

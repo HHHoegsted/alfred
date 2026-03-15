@@ -1,5 +1,4 @@
-import sqlite3
-
+from alfred.models import Note
 from alfred.repositories import NoteRepository
 
 
@@ -10,8 +9,8 @@ class NoteService:
     def capture(self, text: str) -> None:
         self.repository.add(text=text)
 
-    def list_recent(self, limit: int = 10) -> list[sqlite3.Row]:
+    def list_recent(self, limit: int = 10) -> list[Note]:
         return self.repository.list_recent(limit=limit)
 
-    def search(self, query: str, limit: int = 10) -> list[sqlite3.Row]:
+    def search(self, query: str, limit: int = 10) -> list[Note]:
         return self.repository.search(query=query, limit=limit)

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from alfred.db import SQLiteConnectionFactory, SQLAlchemySessionFactory
+from alfred.db import SQLAlchemySessionFactory
 from alfred.repositories import (
     DecisionRecordRepository,
     NoteRepository,
@@ -24,21 +24,19 @@ def get_db_path(data_dir: Path | None = None) -> Path:
     return base_dir / "alfred.db"
 
 
-def build_note_service(data_dir: Path | None = None) -> NoteService:
-    db_path = get_db_path(data_dir)
-
-    sqlite_db = SQLiteConnectionFactory(db_path)
-    sqlite_db.init_db()
-
-    return NoteService(NoteRepository(sqlite_db))
-
-
 def init_sqlalchemy(data_dir: Path | None = None) -> SQLAlchemySessionFactory:
     import alfred.models
 
     session_factory = SQLAlchemySessionFactory(get_db_path(data_dir))
     session_factory.create_all()
     return session_factory
+
+
+def build_note_service(data_dir: Path | None = None) -> NoteService:
+    session_factory = init_sqlalchemy(data_dir=data_dir)
+    session = session_factory.get_session()
+    repository = NoteRepository(session)
+    return NoteService(repository)
 
 
 def build_decision_record_service(

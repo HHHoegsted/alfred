@@ -1,5 +1,3 @@
-import sqlite3
-
 import typer
 
 from alfred.bootstrap import (
@@ -8,6 +6,8 @@ from alfred.bootstrap import (
     build_person_service,
 )
 from alfred.common import format_timestamp
+from alfred.models import Note
+
 
 ### App and Sub-apps
 
@@ -19,13 +19,14 @@ app.add_typer(decision_app, name="decision")
 person_app = typer.Typer(help="Record and review known people.")
 app.add_typer(person_app, name="person")
 
+
 ### Display methods
 
-def display_notes(notes: list[sqlite3.Row]) -> None:
+def display_notes(notes: list[Note]) -> None:
     for note in notes:
-        pretty_timestamp = format_timestamp(note["timestamp"])
-        typer.echo(f"[{note['id']}] {pretty_timestamp}")
-        typer.echo(f"  {note['text']}")
+        pretty_timestamp = format_timestamp(note.created_at.isoformat())
+        typer.echo(f"[{note.id}] {pretty_timestamp}")
+        typer.echo(f"  {note.text}")
         typer.echo()
 
 
@@ -54,6 +55,7 @@ def display_people(people: list) -> None:
         typer.echo(f"  Name:   {person.name}")
         typer.echo(f"  Status: {membership}")
         typer.echo()
+
 
 ### Commands
 
@@ -86,7 +88,7 @@ def list_notes(
     ),
 ) -> None:
     service = build_note_service()
-    notes: list[sqlite3.Row] = service.list_recent(limit=limit)
+    notes: list[Note] = service.list_recent(limit=limit)
 
     if not notes:
         typer.echo("No notes found.")
@@ -111,7 +113,7 @@ def search(
         raise typer.BadParameter("Search query cannot be empty.")
 
     service = build_note_service()
-    notes: list[sqlite3.Row] = service.search(query=cleaned_query, limit=limit)
+    notes: list[Note] = service.search(query=cleaned_query, limit=limit)
 
     if not notes:
         typer.echo("No matching notes found.")
@@ -209,6 +211,7 @@ don't forget
   Not implemented yet.
 """
     )
+
 
 @person_app.command("add")
 def add_person(
