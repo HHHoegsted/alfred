@@ -1,7 +1,6 @@
 import sqlite3
 from pathlib import Path
 
-
 class SQLiteConnectionFactory:
     def __init__(self, db_path: Path) -> None:
         self.db_path = db_path

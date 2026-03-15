@@ -3,6 +3,7 @@ from pathlib import Path
 from typer.testing import CliRunner
 
 from alfred import cli
+from alfred.bootstrap import build_note_service
 
 runner = CliRunner()
 
@@ -14,28 +15,41 @@ def test_hello_prints_alive_message() -> None:
     assert "Alfred is alive" in result.stdout
 
 
-def test_capture_saves_note_and_prints_confirmation(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setattr(cli, "get_data_dir", lambda: tmp_path)
+def test_capture_saves_note_and_prints_confirmation(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setattr(
+        cli,
+        "build_note_service",
+        lambda: build_note_service(data_dir=tmp_path),
+    )
 
     result = runner.invoke(cli.app, ["capture", "Remember the milk"])
 
     assert result.exit_code == 0
-    assert "Note saved." in result.stdout
+    assert "Note captured." in result.stdout
 
     list_result = runner.invoke(cli.app, ["list"])
+
     assert list_result.exit_code == 0
     assert "Remember the milk" in list_result.stdout
 
 
 def test_capture_rejects_empty_note() -> None:
-    result = runner.invoke(cli.app, ["capture", "   "])
+    result = runner.invoke(cli.app, ["capture", " "])
 
     assert result.exit_code != 0
     assert "Note cannot be empty." in result.stderr
 
 
-def test_list_shows_no_notes_message_when_database_is_empty(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setattr(cli, "get_data_dir", lambda: tmp_path)
+def test_list_shows_no_notes_message_when_database_is_empty(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setattr(
+        cli,
+        "build_note_service",
+        lambda: build_note_service(data_dir=tmp_path),
+    )
 
     result = runner.invoke(cli.app, ["list"])
 
@@ -51,7 +65,11 @@ def test_list_rejects_limit_below_one() -> None:
 
 
 def test_search_returns_matching_notes(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setattr(cli, "get_data_dir", lambda: tmp_path)
+    monkeypatch.setattr(
+        cli,
+        "build_note_service",
+        lambda: build_note_service(data_dir=tmp_path),
+    )
 
     runner.invoke(cli.app, ["capture", "Buy Milk"])
     runner.invoke(cli.app, ["capture", "Walk the dog"])
@@ -66,10 +84,13 @@ def test_search_returns_matching_notes(tmp_path: Path, monkeypatch) -> None:
 
 
 def test_search_shows_no_matches_message(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setattr(cli, "get_data_dir", lambda: tmp_path)
+    monkeypatch.setattr(
+        cli,
+        "build_note_service",
+        lambda: build_note_service(data_dir=tmp_path),
+    )
 
     runner.invoke(cli.app, ["capture", "Walk the dog"])
-
     result = runner.invoke(cli.app, ["search", "milk"])
 
     assert result.exit_code == 0
@@ -77,7 +98,7 @@ def test_search_shows_no_matches_message(tmp_path: Path, monkeypatch) -> None:
 
 
 def test_search_rejects_empty_query() -> None:
-    result = runner.invoke(cli.app, ["search", "   "])
+    result = runner.invoke(cli.app, ["search", " "])
 
     assert result.exit_code != 0
     assert "Search query cannot be empty." in result.stderr
