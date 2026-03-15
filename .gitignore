@@ -4,3 +4,5 @@ __pycache__/
 *.pyo
 data/*.db
 alfred.egg-info/
+vision/
+vision.md
