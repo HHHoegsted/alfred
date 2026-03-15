@@ -53,6 +53,69 @@ def add(
     typer.echo("Household fact recorded.")
 
 
+@fact_app.command("update")
+def update(
+    fact_id: int = typer.Argument(..., help="The ID of the household fact to update."),
+    value: str = typer.Option(..., "--value", help="The updated fact value."),
+    details: str | None = typer.Option(
+        None,
+        "--details",
+        help="Optional updated extra context for the fact.",
+    ),
+) -> None:
+    cleaned_value = value.strip()
+    cleaned_details = details.strip() if details is not None else None
+
+    if not cleaned_value:
+        typer.echo("Value cannot be empty.")
+        raise typer.Exit(code=1)
+
+    if cleaned_details == "":
+        cleaned_details = None
+
+    service = cli.build_household_fact_service()
+
+    try:
+        service.update(
+            fact_id=fact_id,
+            value=cleaned_value,
+            details=cleaned_details,
+        )
+    except ValueError as exc:
+        typer.echo(str(exc))
+        raise typer.Exit(code=1) from exc
+
+    typer.echo("Household fact updated.")
+
+
+@fact_app.command("retire")
+def retire(
+    fact_id: int = typer.Argument(..., help="The ID of the household fact to retire."),
+    reason: str | None = typer.Option(
+        None,
+        "--reason",
+        help="Optional reason the fact is no longer active.",
+    ),
+) -> None:
+    cleaned_reason = reason.strip() if reason is not None else None
+
+    if cleaned_reason == "":
+        cleaned_reason = None
+
+    service = cli.build_household_fact_service()
+
+    try:
+        service.retire(
+            fact_id=fact_id,
+            reason=cleaned_reason,
+        )
+    except ValueError as exc:
+        typer.echo(str(exc))
+        raise typer.Exit(code=1) from exc
+
+    typer.echo("Household fact retired.")
+
+
 @fact_app.command("list")
 def list_facts(
     limit: int = typer.Option(
