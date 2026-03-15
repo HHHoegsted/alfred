@@ -7,12 +7,12 @@ def help_memory() -> None:
 
 WRITE
 
-capture
+note capture
   Store quick raw notes.
   Example:
-    alfred capture "Milk, batteries, printer paper"
+    alfred note capture "Milk, batteries, printer paper"
 
-record
+decision record
   Store structured durable memory, such as decisions.
   Example:
     alfred decision record --summary "Use SQLAlchemy" --reason "Easier later move to Postgres"
@@ -24,10 +24,15 @@ person add
 
 READ
 
-search
+note list
+  Review recent captured notes.
+  Example:
+    alfred note list
+
+note search
   Search captured notes.
   Example:
-    alfred search "printer"
+    alfred note search "printer"
 
 decision list
   Review recorded decisions.
@@ -41,18 +46,6 @@ person list
 
 remember
   Reserved for future retrieval of durable household knowledge.
-  Not implemented yet.
-
-AVOID
-
-save
-  Too generic for Alfred's memory language.
-  Prefer capture or record.
-
-LATER
-
-don't forget
-  Better suited for reminders/tasks than memory records.
   Not implemented yet.
 """
     )
