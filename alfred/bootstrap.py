@@ -3,11 +3,13 @@ from pathlib import Path
 from alfred.db import SQLAlchemySessionFactory
 from alfred.repositories import (
     DecisionRecordRepository,
+    HouseholdFactRepository,
     NoteRepository,
     PersonRepository,
 )
 from alfred.services import (
     DecisionRecordService,
+    HouseholdFactService,
     NoteService,
     PersonService,
 )
@@ -53,3 +55,11 @@ def build_person_service(data_dir: Path | None = None) -> PersonService:
     session = session_factory.get_session()
     repository = PersonRepository(session)
     return PersonService(repository)
+
+def build_household_fact_service(
+    data_dir: Path | None = None,
+) -> HouseholdFactService:
+    session_factory = init_sqlalchemy(data_dir=data_dir)
+    session = session_factory.get_session()
+    repository = HouseholdFactRepository(session)
+    return HouseholdFactService(repository)

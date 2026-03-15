@@ -178,3 +178,71 @@ def test_person_list_displays_people_and_household_status(
     assert "Guest" in result.stdout
     assert "household member" in result.stdout
     assert "known person" in result.stdout
+
+def test_fact_add_records_household_fact(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    original_build_household_fact_service = cli.build_household_fact_service
+
+    def build_household_fact_service_for_test():
+        return original_build_household_fact_service(data_dir=tmp_path)
+
+    monkeypatch.setattr(
+        cli,
+        "build_household_fact_service",
+        build_household_fact_service_for_test,
+    )
+
+    result = runner.invoke(
+        cli.app,
+        [
+            "fact",
+            "add",
+            "--subject",
+            "Water shutoff valve",
+            "--value",
+            "Under kitchen sink",
+            "--details",
+            "Turn clockwise to close",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Household fact recorded." in result.stdout
+
+    service = cli.build_household_fact_service()
+    facts = service.list_recent(limit=10)
+
+    assert len(facts) == 1
+    assert facts[0].subject == "Water shutoff valve"
+    assert facts[0].value == "Under kitchen sink"
+    assert facts[0].details == "Turn clockwise to close"
+
+
+def test_fact_list_shows_recorded_household_facts(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    original_build_household_fact_service = cli.build_household_fact_service
+
+    def build_household_fact_service_for_test():
+        return original_build_household_fact_service(data_dir=tmp_path)
+
+    monkeypatch.setattr(
+        cli,
+        "build_household_fact_service",
+        build_household_fact_service_for_test,
+    )
+
+    service = cli.build_household_fact_service()
+    service.record(
+        subject="Wi-Fi SSID",
+        value="WorldHouseNet",
+    )
+
+    result = runner.invoke(cli.app, ["fact", "list"])
+
+    assert result.exit_code == 0
+    assert "Wi-Fi SSID" in result.stdout
+    assert "WorldHouseNet" in result.stdout
