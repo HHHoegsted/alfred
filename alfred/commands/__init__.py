@@ -1,0 +1,1 @@
+# alfred/commands/__init__.py
