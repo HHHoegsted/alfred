@@ -1,75 +1,76 @@
+from pathlib import Path
+
 from alfred.bootstrap import init_sqlalchemy
 from alfred.repositories import NoteRepository
 
 
-def build_repository(tmp_path) -> tuple[NoteRepository, object]:
+def test_note_repository_add_persists_note(tmp_path: Path) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
-    session = session_factory.get_session()
-    repository = NoteRepository(session)
-    return repository, session
 
-
-def test_add_inserts_note(tmp_path) -> None:
-    repository, session = build_repository(tmp_path)
-
-    try:
+    with session_factory.get_session() as session:
+        repository = NoteRepository(session)
         repository.add("Remember the milk")
 
+    with session_factory.get_session() as session:
+        repository = NoteRepository(session)
         notes = repository.list_recent()
 
-        assert len(notes) == 1
-        assert notes[0].text == "Remember the milk"
-        assert notes[0].id is not None
-        assert notes[0].created_at is not None
-    finally:
-        session.close()
+    assert len(notes) == 1
+    assert notes[0].text == "Remember the milk"
+    assert notes[0].id is not None
+    assert notes[0].created_at is not None
 
 
-def test_list_recent_returns_newest_first(tmp_path) -> None:
-    repository, session = build_repository(tmp_path)
+def test_note_repository_list_recent_returns_newest_first(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
 
-    try:
+    with session_factory.get_session() as session:
+        repository = NoteRepository(session)
         repository.add("First note")
         repository.add("Second note")
 
+    with session_factory.get_session() as session:
+        repository = NoteRepository(session)
         notes = repository.list_recent()
 
-        assert len(notes) == 2
-        assert notes[0].text == "Second note"
-        assert notes[1].text == "First note"
-    finally:
-        session.close()
+    assert len(notes) == 2
+    assert notes[0].text == "Second note"
+    assert notes[1].text == "First note"
 
 
-def test_search_finds_matching_notes_case_insensitively(tmp_path) -> None:
-    repository, session = build_repository(tmp_path)
+def test_note_repository_search_finds_matching_notes_case_insensitively(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
 
-    try:
+    with session_factory.get_session() as session:
+        repository = NoteRepository(session)
         repository.add("Buy Milk")
         repository.add("Walk the dog")
         repository.add("Remember milk for coffee")
 
+    with session_factory.get_session() as session:
+        repository = NoteRepository(session)
         notes = repository.search("milk")
 
-        assert len(notes) == 2
-        assert notes[0].text == "Remember milk for coffee"
-        assert notes[1].text == "Buy Milk"
-    finally:
-        session.close()
+    assert len(notes) == 2
+    assert notes[0].text == "Remember milk for coffee"
+    assert notes[1].text == "Buy Milk"
 
 
-def test_search_respects_limit(tmp_path) -> None:
-    repository, session = build_repository(tmp_path)
+def test_note_repository_search_respects_limit(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
 
-    try:
+    with session_factory.get_session() as session:
+        repository = NoteRepository(session)
         repository.add("milk one")
         repository.add("milk two")
         repository.add("milk three")
 
+    with session_factory.get_session() as session:
+        repository = NoteRepository(session)
         notes = repository.search("milk", limit=2)
 
-        assert len(notes) == 2
-        assert notes[0].text == "milk three"
-        assert notes[1].text == "milk two"
-    finally:
-        session.close()
+    assert len(notes) == 2
+    assert notes[0].text == "milk three"
+    assert notes[1].text == "milk two"
