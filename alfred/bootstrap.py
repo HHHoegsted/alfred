@@ -6,12 +6,14 @@ from alfred.repositories import (
     HouseholdFactRepository,
     NoteRepository,
     PersonRepository,
+    AssetRepository,
 )
 from alfred.services import (
     DecisionRecordService,
     HouseholdFactService,
     NoteService,
     PersonService,
+    AssetService,
 )
 
 
@@ -63,3 +65,9 @@ def build_household_fact_service(
     session = session_factory.get_session()
     repository = HouseholdFactRepository(session)
     return HouseholdFactService(repository)
+
+def build_asset_service(data_dir: Path | None = None) -> AssetService:
+    session_factory = init_sqlalchemy(data_dir=data_dir)
+    session = session_factory.get_session()
+    repository = AssetRepository(session)
+    return AssetService(repository)
