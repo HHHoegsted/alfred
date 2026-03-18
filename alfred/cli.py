@@ -6,6 +6,7 @@ from alfred.bootstrap import (
     build_note_service,
     build_person_service,
     build_asset_service,
+    build_purchase_service,
 )
 
 from alfred.commands.decisions import decision_app
@@ -13,6 +14,7 @@ from alfred.commands.person_context import person_app
 from alfred.commands.notes import notes_app
 from alfred.commands.fact import fact_app
 from alfred.commands.assets import asset_app
+from alfred.commands.purchase import purchase_app
 from alfred.commands.help_memory import help_memory
 
 
@@ -24,6 +26,7 @@ app.add_typer(person_app, name="person")
 app.add_typer(notes_app, name="note")
 app.add_typer(fact_app, name="fact")
 app.add_typer(asset_app, name="asset")
+app.add_typer(purchase_app, name="purchase")
 # single commands
 app.command("help-memory")(help_memory)
 

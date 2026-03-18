@@ -1,6 +1,6 @@
 import typer
 
-import alfred.cli as cli
+import alfred.bootstrap as bootstrap
 from alfred.models import Asset
 
 
@@ -46,7 +46,7 @@ def record(
     ),
     details: str | None = typer.Option(None, "--details", help="Additional asset details."),
 ) -> None:
-    service = cli.build_asset_service()
+    service = bootstrap.build_asset_service()
 
     try:
         asset = service.record(
@@ -69,7 +69,7 @@ def record(
 def list_recent(
     limit: int = typer.Option(20, "--limit", min=1, help="Maximum number of assets to show."),
 ) -> None:
-    service = cli.build_asset_service()
+    service = bootstrap.build_asset_service()
     assets = service.list_recent(limit=limit)
 
     if not assets:

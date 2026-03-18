@@ -3,11 +3,13 @@ from .person import Person
 from .note import Note
 from .household_fact import HouseholdFact
 from .asset import Asset
+from .purchase import Purchase
 
 __all__ = [
     "DecisionRecord",
     "Person",
 	"Note",
 	"HouseholdFact",
-	"Asset"
+	"Asset",
+	"Purchase",
 ]

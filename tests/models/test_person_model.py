@@ -1,10 +1,33 @@
 import sqlite3
+from pathlib import Path
 
 from alfred.bootstrap import get_db_path, init_sqlalchemy
+from alfred.models import Person
+
+
+def test_person_can_be_inserted_and_queried(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+
+    with session_factory.get_session() as session:
+        person = Person(
+            name="Sara",
+            is_household_member=True,
+        )
+        session.add(person)
+        session.commit()
+
+    with session_factory.get_session() as session:
+        people = session.query(Person).all()
+
+    assert len(people) == 1
+    assert people[0].name == "Sara"
+    assert people[0].is_household_member is True
+    assert people[0].id is not None
+    assert people[0].created_at is not None
 
 
 def test_init_sqlalchemy_creates_people_table_with_household_membership_column(
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     init_sqlalchemy(data_dir=tmp_path)
 

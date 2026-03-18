@@ -1,9 +1,28 @@
 import sqlite3
+from pathlib import Path
 
 from alfred.bootstrap import get_db_path, init_sqlalchemy
+from alfred.models import Note
 
 
-def test_init_sqlalchemy_creates_notes_table_with_text_column(tmp_path) -> None:
+def test_note_can_be_inserted_and_queried(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+
+    with session_factory.get_session() as session:
+        note = Note(text="Remember the milk")
+        session.add(note)
+        session.commit()
+
+    with session_factory.get_session() as session:
+        notes = session.query(Note).all()
+
+    assert len(notes) == 1
+    assert notes[0].text == "Remember the milk"
+    assert notes[0].id is not None
+    assert notes[0].created_at is not None
+
+
+def test_init_sqlalchemy_creates_notes_table_with_text_column(tmp_path: Path) -> None:
     init_sqlalchemy(data_dir=tmp_path)
 
     db_path = get_db_path(tmp_path)
