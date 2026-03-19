@@ -7,87 +7,111 @@ from alfred.repositories import DecisionRecordRepository
 from alfred.services import DecisionRecordService
 
 
-def test_record_creates_decision_record(tmp_path: Path) -> None:
+def test_decision_record_service_record_saves_record(tmp_path: Path) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = DecisionRecordRepository(session_factory)
+    service = DecisionRecordService(repository)
 
-    with session_factory.get_session() as session:
-        repository = DecisionRecordRepository(session)
-        service = DecisionRecordService(repository)
-
-        record = service.record(
-            summary="Use SQLAlchemy for new structured domains",
-            reason="It provides a typed persistence foundation and eases a later move to Postgres.",
-        )
-
-    assert record.id is not None
-    assert record.created_at is not None
-    assert record.summary == "Use SQLAlchemy for new structured domains"
-    assert (
-        record.reason
-        == "It provides a typed persistence foundation and eases a later move to Postgres."
+    record = service.record(
+        summary="Use SQLAlchemy",
+        reason="Easier later move to Postgres",
     )
 
+    assert record.id is not None
+    assert record.summary == "Use SQLAlchemy"
+    assert record.reason == "Easier later move to Postgres"
 
-def test_record_trims_summary_and_reason(tmp_path: Path) -> None:
+    records = service.list_recent(limit=10)
+    assert len(records) == 1
+    assert records[0].summary == "Use SQLAlchemy"
+    assert records[0].reason == "Easier later move to Postgres"
+
+
+def test_decision_record_service_record_rejects_empty_summary(
+    tmp_path: Path,
+) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = DecisionRecordRepository(session_factory)
+    service = DecisionRecordService(repository)
 
-    with session_factory.get_session() as session:
-        repository = DecisionRecordRepository(session)
-        service = DecisionRecordService(repository)
-
-        record = service.record(
-            summary="  Keep notes local-first  ",
-            reason="  Privacy and portability matter.  ",
+    with pytest.raises(ValueError, match="Decision summary cannot be empty."):
+        service.record(
+            summary="   ",
+            reason="Easier later move to Postgres",
         )
 
-    assert record.summary == "Keep notes local-first"
-    assert record.reason == "Privacy and portability matter."
 
-
-def test_record_rejects_empty_summary(tmp_path: Path) -> None:
+def test_decision_record_service_record_rejects_empty_reason(
+    tmp_path: Path,
+) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = DecisionRecordRepository(session_factory)
+    service = DecisionRecordService(repository)
 
-    with session_factory.get_session() as session:
-        repository = DecisionRecordRepository(session)
-        service = DecisionRecordService(repository)
-
-        with pytest.raises(ValueError, match="Decision summary cannot be empty."):
-            service.record(
-                summary="   ",
-                reason="A reason exists.",
-            )
+    with pytest.raises(ValueError, match="Decision reason cannot be empty."):
+        service.record(
+            summary="Use SQLAlchemy",
+            reason="   ",
+        )
 
 
-def test_record_rejects_empty_reason(tmp_path: Path) -> None:
+def test_decision_record_service_record_strips_inputs(tmp_path: Path) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = DecisionRecordRepository(session_factory)
+    service = DecisionRecordService(repository)
 
-    with session_factory.get_session() as session:
-        repository = DecisionRecordRepository(session)
-        service = DecisionRecordService(repository)
+    record = service.record(
+        summary="  Use SQLAlchemy  ",
+        reason="  Easier later move to Postgres  ",
+    )
 
-        with pytest.raises(ValueError, match="Decision reason cannot be empty."):
-            service.record(
-                summary="A summary exists.",
-                reason="   ",
-            )
+    assert record.summary == "Use SQLAlchemy"
+    assert record.reason == "Easier later move to Postgres"
 
 
-def test_list_recent_returns_records(tmp_path: Path) -> None:
+def test_decision_record_service_list_recent_returns_newest_first(
+    tmp_path: Path,
+) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = DecisionRecordRepository(session_factory)
+    service = DecisionRecordService(repository)
 
-    with session_factory.get_session() as session:
-        repository = DecisionRecordRepository(session)
-        service = DecisionRecordService(repository)
+    service.record(
+        summary="First decision",
+        reason="First reason",
+    )
+    service.record(
+        summary="Second decision",
+        reason="Second reason",
+    )
 
-        service.record(summary="First decision", reason="First reason")
-        service.record(summary="Second decision", reason="Second reason")
-
-    with session_factory.get_session() as session:
-        repository = DecisionRecordRepository(session)
-        service = DecisionRecordService(repository)
-
-        records = service.list_recent()
+    records = service.list_recent(limit=10)
 
     assert len(records) == 2
     assert records[0].summary == "Second decision"
     assert records[1].summary == "First decision"
+
+
+def test_decision_record_service_list_recent_respects_limit(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = DecisionRecordRepository(session_factory)
+    service = DecisionRecordService(repository)
+
+    service.record(
+        summary="First decision",
+        reason="First reason",
+    )
+    service.record(
+        summary="Second decision",
+        reason="Second reason",
+    )
+    service.record(
+        summary="Third decision",
+        reason="Third reason",
+    )
+
+    records = service.list_recent(limit=2)
+
+    assert len(records) == 2

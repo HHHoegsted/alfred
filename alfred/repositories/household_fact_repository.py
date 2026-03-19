@@ -1,14 +1,13 @@
 from datetime import UTC, datetime
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from alfred.models import HouseholdFact
 
 
 class HouseholdFactRepository:
-    def __init__(self, session: Session) -> None:
-        self.session = session
+    def __init__(self, session_factory) -> None:
+        self.session_factory = session_factory
 
     def create(
         self,
@@ -16,19 +15,22 @@ class HouseholdFactRepository:
         value: str,
         details: str | None,
     ) -> HouseholdFact:
-        fact = HouseholdFact(
-            subject=subject,
-            value=value,
-            details=details,
-        )
-        self.session.add(fact)
-        self.session.commit()
-        self.session.refresh(fact)
-        return fact
+        with self.session_factory.get_session() as session:
+            fact = HouseholdFact(
+                subject=subject,
+                value=value,
+                details=details,
+            )
+            session.add(fact)
+            session.commit()
+            session.refresh(fact)
+            return fact
 
     def get_by_id(self, fact_id: int) -> HouseholdFact | None:
         statement = select(HouseholdFact).where(HouseholdFact.id == fact_id)
-        return self.session.scalar(statement)
+
+        with self.session_factory.get_session() as session:
+            return session.scalar(statement)
 
     def update(
         self,
@@ -37,14 +39,20 @@ class HouseholdFactRepository:
         value: str,
         details: str | None,
     ) -> HouseholdFact:
-        fact.value = value
-        fact.details = details
-        fact.updated_at = datetime.now(UTC)
+        with self.session_factory.get_session() as session:
+            persisted_fact = session.get(HouseholdFact, fact.id)
 
-        self.session.add(fact)
-        self.session.commit()
-        self.session.refresh(fact)
-        return fact
+            if persisted_fact is None:
+                return fact
+
+            persisted_fact.value = value
+            persisted_fact.details = details
+            persisted_fact.updated_at = datetime.now(UTC)
+
+            session.add(persisted_fact)
+            session.commit()
+            session.refresh(persisted_fact)
+            return persisted_fact
 
     def retire(
         self,
@@ -52,13 +60,19 @@ class HouseholdFactRepository:
         *,
         reason: str | None,
     ) -> HouseholdFact:
-        fact.retired_at = datetime.now(UTC)
-        fact.retired_reason = reason
+        with self.session_factory.get_session() as session:
+            persisted_fact = session.get(HouseholdFact, fact.id)
 
-        self.session.add(fact)
-        self.session.commit()
-        self.session.refresh(fact)
-        return fact
+            if persisted_fact is None:
+                return fact
+
+            persisted_fact.retired_at = datetime.now(UTC)
+            persisted_fact.retired_reason = reason
+
+            session.add(persisted_fact)
+            session.commit()
+            session.refresh(persisted_fact)
+            return persisted_fact
 
     def list_recent(self, limit: int = 10) -> list[HouseholdFact]:
         statement = (
@@ -67,4 +81,6 @@ class HouseholdFactRepository:
             .order_by(HouseholdFact.created_at.desc(), HouseholdFact.id.desc())
             .limit(limit)
         )
-        return list(self.session.scalars(statement))
+
+        with self.session_factory.get_session() as session:
+            return list(session.scalars(statement))

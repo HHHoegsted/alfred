@@ -39,51 +39,39 @@ def init_sqlalchemy(data_dir: Path | None = None) -> SQLAlchemySessionFactory:
 
 def build_note_service(data_dir: Path | None = None) -> NoteService:
     session_factory = init_sqlalchemy(data_dir)
-
-    with session_factory.get_session() as session:
-        repository = NoteRepository(session)
-        return NoteService(repository)
+    repository = NoteRepository(session_factory)
+    return NoteService(repository)
 
 
 def build_decision_record_service(
     data_dir: Path | None = None,
 ) -> DecisionRecordService:
     session_factory = init_sqlalchemy(data_dir)
-
-    with session_factory.get_session() as session:
-        repository = DecisionRecordRepository(session)
-        return DecisionRecordService(repository)
+    repository = DecisionRecordRepository(session_factory)
+    return DecisionRecordService(repository)
 
 
 def build_person_service(data_dir: Path | None = None) -> PersonService:
     session_factory = init_sqlalchemy(data_dir)
-
-    with session_factory.get_session() as session:
-        repository = PersonRepository(session)
-        return PersonService(repository)
+    repository = PersonRepository(session_factory)
+    return PersonService(repository)
 
 
 def build_household_fact_service(
     data_dir: Path | None = None,
 ) -> HouseholdFactService:
     session_factory = init_sqlalchemy(data_dir)
-
-    with session_factory.get_session() as session:
-        repository = HouseholdFactRepository(session)
-        return HouseholdFactService(repository)
+    repository = HouseholdFactRepository(session_factory)
+    return HouseholdFactService(repository)
 
 
 def build_asset_service(data_dir: Path | None = None) -> AssetService:
     session_factory = init_sqlalchemy(data_dir)
-
-    with session_factory.get_session() as session:
-        repository = AssetRepository(session)
-        return AssetService(repository)
+    repository = AssetRepository(session_factory)
+    return AssetService(repository)
 
 
 def build_purchase_service(data_dir: Path | None = None) -> PurchaseService:
     session_factory = init_sqlalchemy(data_dir)
-
-    with session_factory.get_session() as session:
-        repository = PurchaseRepository(session)
-        return PurchaseService(repository)
+    repository = PurchaseRepository(session_factory)
+    return PurchaseService(repository)

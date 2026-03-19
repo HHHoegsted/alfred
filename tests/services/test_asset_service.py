@@ -3,103 +3,174 @@ from pathlib import Path
 import pytest
 
 from alfred.bootstrap import init_sqlalchemy
-from alfred.repositories.asset_repository import AssetRepository
-from alfred.services.asset_service import AssetService
+from alfred.repositories import AssetRepository
+from alfred.services import AssetService
 
 
-def test_asset_service_record_creates_asset(tmp_path: Path) -> None:
+def test_asset_service_record_saves_asset(tmp_path: Path) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = AssetRepository(session_factory)
+    service = AssetService(repository)
 
-    with session_factory.get_session() as session:
-        repository = AssetRepository(session)
-        service = AssetService(repository)
-
-        asset = service.record(
-            name="Bosch Oven",
-            category="appliance",
-            location="Kitchen",
-            brand="Bosch",
-            model="HBG6764S1",
-            serial_number="SN-12345",
-            details="Main built-in oven.",
-        )
+    asset = service.record(
+        name="LG Washing Machine",
+        category="Appliance",
+        location="Utility room",
+        brand="LG",
+        model="F4Y5EYP6J",
+        serial_number="SN-12345",
+        details="Bought for the current home.",
+    )
 
     assert asset.id is not None
-    assert asset.name == "Bosch Oven"
-    assert asset.category == "appliance"
-    assert asset.location == "Kitchen"
-    assert asset.brand == "Bosch"
-    assert asset.model == "HBG6764S1"
+    assert asset.name == "LG Washing Machine"
+    assert asset.category == "Appliance"
+    assert asset.location == "Utility room"
+    assert asset.brand == "LG"
+    assert asset.model == "F4Y5EYP6J"
     assert asset.serial_number == "SN-12345"
-    assert asset.details == "Main built-in oven."
-    assert asset.created_at is not None
-    assert asset.updated_at is None
-    assert asset.retired_at is None
-    assert asset.retired_reason is None
+    assert asset.details == "Bought for the current home."
+
+    assets = service.list_recent(limit=10)
+    assert len(assets) == 1
+    assert assets[0].name == "LG Washing Machine"
 
 
-def test_asset_service_record_strips_fields_and_converts_blanks_to_none(
+def test_asset_service_record_rejects_empty_name(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = AssetRepository(session_factory)
+    service = AssetService(repository)
+
+    with pytest.raises(ValueError, match="Name cannot be empty."):
+        service.record(
+            name="   ",
+            category="Appliance",
+            location="Utility room",
+            brand="LG",
+            model="F4Y5EYP6J",
+            serial_number="SN-12345",
+            details="Bought for the current home.",
+        )
+
+
+def test_asset_service_record_strips_inputs(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = AssetRepository(session_factory)
+    service = AssetService(repository)
+
+    asset = service.record(
+        name="  LG Washing Machine  ",
+        category="  Appliance  ",
+        location="  Utility room  ",
+        brand="  LG  ",
+        model="  F4Y5EYP6J  ",
+        serial_number="  SN-12345  ",
+        details="  Bought for the current home.  ",
+    )
+
+    assert asset.name == "LG Washing Machine"
+    assert asset.category == "Appliance"
+    assert asset.location == "Utility room"
+    assert asset.brand == "LG"
+    assert asset.model == "F4Y5EYP6J"
+    assert asset.serial_number == "SN-12345"
+    assert asset.details == "Bought for the current home."
+
+
+def test_asset_service_record_normalizes_blank_optional_fields_to_none(
     tmp_path: Path,
 ) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = AssetRepository(session_factory)
+    service = AssetService(repository)
 
-    with session_factory.get_session() as session:
-        repository = AssetRepository(session)
-        service = AssetService(repository)
+    asset = service.record(
+        name="LG Washing Machine",
+        category="   ",
+        location="   ",
+        brand="   ",
+        model="   ",
+        serial_number="   ",
+        details="   ",
+    )
 
-        asset = service.record(
-            name="  Bosch Oven  ",
-            category="  appliance  ",
-            location="   ",
-            brand="  Bosch  ",
-            model="  HBG6764S1  ",
-            serial_number="   ",
-            details="   Main built-in oven.   ",
-        )
-
-    assert asset.name == "Bosch Oven"
-    assert asset.category == "appliance"
+    assert asset.name == "LG Washing Machine"
+    assert asset.category is None
     assert asset.location is None
-    assert asset.brand == "Bosch"
-    assert asset.model == "HBG6764S1"
+    assert asset.brand is None
+    assert asset.model is None
     assert asset.serial_number is None
-    assert asset.details == "Main built-in oven."
+    assert asset.details is None
 
 
-def test_asset_service_record_raises_for_empty_name(tmp_path: Path) -> None:
+def test_asset_service_list_recent_returns_newest_first(
+    tmp_path: Path,
+) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = AssetRepository(session_factory)
+    service = AssetService(repository)
 
-    with session_factory.get_session() as session:
-        repository = AssetRepository(session)
-        service = AssetService(repository)
+    service.record(
+        name="First asset",
+        category=None,
+        location=None,
+        brand=None,
+        model=None,
+        serial_number=None,
+        details=None,
+    )
+    service.record(
+        name="Second asset",
+        category=None,
+        location=None,
+        brand=None,
+        model=None,
+        serial_number=None,
+        details=None,
+    )
 
-        with pytest.raises(ValueError, match="Name cannot be empty."):
-            service.record(
-                name="   ",
-                category="appliance",
-                location="Kitchen",
-                brand="Bosch",
-                model="HBG6764S1",
-                serial_number="SN-12345",
-                details="Main built-in oven.",
-            )
-
-
-def test_asset_service_list_recent_returns_assets(tmp_path: Path) -> None:
-    session_factory = init_sqlalchemy(data_dir=tmp_path)
-
-    with session_factory.get_session() as session:
-        repository = AssetRepository(session)
-        service = AssetService(repository)
-
-        older_asset = service.record(name="Living Room Rug")
-        older_asset_id = older_asset.id
-
-        newer_asset = service.record(name="Bosch Oven")
-        newer_asset_id = newer_asset.id
-
-        assets = service.list_recent()
+    assets = service.list_recent(limit=10)
 
     assert len(assets) == 2
-    assert assets[0].id == newer_asset_id
-    assert assets[1].id == older_asset_id
+    assert assets[0].name == "Second asset"
+    assert assets[1].name == "First asset"
+
+
+def test_asset_service_list_recent_respects_limit(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = AssetRepository(session_factory)
+    service = AssetService(repository)
+
+    service.record(
+        name="First asset",
+        category=None,
+        location=None,
+        brand=None,
+        model=None,
+        serial_number=None,
+        details=None,
+    )
+    service.record(
+        name="Second asset",
+        category=None,
+        location=None,
+        brand=None,
+        model=None,
+        serial_number=None,
+        details=None,
+    )
+    service.record(
+        name="Third asset",
+        category=None,
+        location=None,
+        brand=None,
+        model=None,
+        serial_number=None,
+        details=None,
+    )
+
+    assets = service.list_recent(limit=2)
+
+    assert len(assets) == 2
