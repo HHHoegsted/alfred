@@ -34,15 +34,16 @@ def add_person(
         help="Mark this person as part of the current household.",
     ),
 ) -> None:
-    cleaned_name = name.strip()
-    if not cleaned_name:
-        raise typer.BadParameter("Person name cannot be empty.")
-
     service = bootstrap.build_person_service()
-    person = service.register(
-        name=cleaned_name,
-        is_household_member=household_member,
-    )
+
+    try:
+        person = service.register(
+            name=name,
+            is_household_member=household_member,
+        )
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
     typer.echo(f"Person registered. [#{person.id}] {person.name}")
 
 

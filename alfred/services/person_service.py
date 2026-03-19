@@ -11,6 +11,11 @@ class PersonService:
         name: str,
         is_household_member: bool = False,
     ) -> Person:
+        name = name.strip()
+
+        if not name:
+            raise ValueError("Person name cannot be empty.")
+
         return self.repository.create(
             name=name,
             is_household_member=is_household_member,
