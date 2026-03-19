@@ -15,8 +15,11 @@ Alfred is currently an early-stage Python CLI application with local persistence
 At this stage, Alfred includes implemented support for:
 
 - notes
-- person context
+- people
 - decision records
+- household facts
+- assets
+- purchases
 
 This is still foundation work, not the final shape of the system.
 
@@ -60,6 +63,14 @@ Current implemented capabilities include:
 - list people and their household status
 - record structured decisions
 - list recent decision records
+- record household facts
+- update household facts
+- retire household facts
+- list household facts
+- record household assets
+- list household assets
+- record purchases
+- list purchases
 - store household memory locally in SQLite
 
 ---
@@ -92,6 +103,23 @@ Work with decisions:
     uv run alfred decision record --summary "Use SQLAlchemy" --reason "Easier later move to Postgres"
     uv run alfred decision list
 
+Work with household facts:
+
+    uv run alfred fact add --subject "Water shutoff valve" --value "Under kitchen sink" --details "Turn clockwise to close"
+    uv run alfred fact update 1 --value "Under utility sink" --details "Turn clockwise to close"
+    uv run alfred fact retire 1 --reason "No longer correct after renovation"
+    uv run alfred fact list
+
+Work with assets:
+
+    uv run alfred asset record "LG Washing Machine" --category "Appliance" --location "Utility room" --brand "LG" --model "F4Y5EYP6J"
+    uv run alfred asset list
+
+Work with purchases:
+
+    uv run alfred purchase record "Vacuum bags" --vendor "Power" --purchase-date "2026-03-18T12:00:00" --price-amount "249.95" --currency "DKK" --order-reference "WEB-12345"
+    uv run alfred purchase list
+
 Show Alfred's memory-oriented command guidance:
 
     uv run alfred help-memory
@@ -107,6 +135,9 @@ Alfred currently exposes these top-level commands and command groups:
 - `note`
 - `person`
 - `decision`
+- `fact`
+- `asset`
+- `purchase`
 
 ### Notes
 
@@ -116,7 +147,7 @@ Commands for working with notes:
 - `alfred note list`
 - `alfred note search`
 
-### Person context
+### People
 
 Commands for working with known people:
 
@@ -129,6 +160,29 @@ Commands for working with decisions:
 
 - `alfred decision record`
 - `alfred decision list`
+
+### Household facts
+
+Commands for working with household facts:
+
+- `alfred fact add`
+- `alfred fact update`
+- `alfred fact retire`
+- `alfred fact list`
+
+### Assets
+
+Commands for working with household assets:
+
+- `alfred asset record`
+- `alfred asset list`
+
+### Purchases
+
+Commands for working with purchases:
+
+- `alfred purchase record`
+- `alfred purchase list`
 
 ---
 
@@ -180,7 +234,7 @@ Owns database setup, sessions, and storage-specific details.
 
 ### Domain layer
 
-Represents Alfred's long-term knowledge model, such as notes, decision records, person context, and related concepts as they are introduced.
+Represents Alfred's long-term knowledge model, such as notes, people, decision records, household facts, assets, purchases, and related concepts as they are introduced.
 
 ---
 
