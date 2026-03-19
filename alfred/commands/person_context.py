@@ -1,6 +1,6 @@
 import typer
 
-import alfred.cli as cli
+import alfred.bootstrap as bootstrap
 from alfred.common import format_timestamp
 
 
@@ -38,7 +38,7 @@ def add_person(
     if not cleaned_name:
         raise typer.BadParameter("Person name cannot be empty.")
 
-    service = cli.build_person_service()
+    service = bootstrap.build_person_service()
     person = service.register(
         name=cleaned_name,
         is_household_member=household_member,
@@ -56,6 +56,6 @@ def list_people(
         help="Maximum number of recent people to show.",
     ),
 ) -> None:
-    service = cli.build_person_service()
+    service = bootstrap.build_person_service()
     people = service.list_recent(limit=limit)
     display_people(people)

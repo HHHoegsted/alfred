@@ -1,6 +1,6 @@
 import typer
 
-import alfred.cli as cli
+import alfred.bootstrap as bootstrap
 from alfred.common import format_timestamp
 from alfred.models import HouseholdFact
 
@@ -44,7 +44,7 @@ def add(
     if cleaned_details == "":
         cleaned_details = None
 
-    service = cli.build_household_fact_service()
+    service = bootstrap.build_household_fact_service()
     service.record(
         subject=cleaned_subject,
         value=cleaned_value,
@@ -73,7 +73,7 @@ def update(
     if cleaned_details == "":
         cleaned_details = None
 
-    service = cli.build_household_fact_service()
+    service = bootstrap.build_household_fact_service()
 
     try:
         service.update(
@@ -102,7 +102,7 @@ def retire(
     if cleaned_reason == "":
         cleaned_reason = None
 
-    service = cli.build_household_fact_service()
+    service = bootstrap.build_household_fact_service()
 
     try:
         service.retire(
@@ -126,7 +126,7 @@ def list_facts(
         help="Maximum number of recent household facts to show.",
     ),
 ) -> None:
-    service = cli.build_household_fact_service()
+    service = bootstrap.build_household_fact_service()
     facts: list[HouseholdFact] = service.list_recent(limit=limit)
 
     if not facts:
