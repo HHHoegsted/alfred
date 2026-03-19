@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from alfred.models import Purchase
 from alfred.repositories import PurchaseRepository
@@ -32,7 +32,7 @@ class PurchaseService:
             vendor = None
 
         if purchase_date is None:
-            purchase_date = datetime.now()
+            purchase_date = datetime.now(UTC)
 
         if price_amount == "":
             price_amount = None
