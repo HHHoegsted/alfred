@@ -34,7 +34,13 @@ def record_decision(
     ),
 ) -> None:
     service = bootstrap.build_decision_record_service()
-    record = service.record(summary=summary, reason=reason)
+
+    try:
+        record = service.record(summary=summary, reason=reason)
+    except ValueError as exc:
+        typer.echo(str(exc))
+        raise typer.Exit(code=1) from exc
+
     typer.echo(f"Decision recorded. [#{record.id}] {record.summary}")
 
 
