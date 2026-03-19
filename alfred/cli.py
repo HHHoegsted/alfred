@@ -1,14 +1,5 @@
 import typer
 
-from alfred.bootstrap import (
-    build_decision_record_service,
-    build_household_fact_service,
-    build_note_service,
-    build_person_service,
-    build_asset_service,
-    build_purchase_service,
-)
-
 from alfred.commands.decisions import decision_app
 from alfred.commands.person_context import person_app
 from alfred.commands.notes import notes_app

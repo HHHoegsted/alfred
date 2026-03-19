@@ -42,7 +42,8 @@ def add_person(
             is_household_member=household_member,
         )
     except ValueError as exc:
-        raise typer.BadParameter(str(exc)) from exc
+        typer.echo(str(exc))
+        raise typer.Exit(code=1) from exc
 
     typer.echo(f"Person registered. [#{person.id}] {person.name}")
 
