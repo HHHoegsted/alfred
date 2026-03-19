@@ -1,6 +1,6 @@
 import typer
 
-import alfred.cli as cli
+import alfred.bootstrap as bootstrap
 from alfred.common import format_timestamp
 
 
@@ -33,7 +33,7 @@ def record_decision(
         help="Why the decision was made.",
     ),
 ) -> None:
-    service = cli.build_decision_record_service()
+    service = bootstrap.build_decision_record_service()
     record = service.record(summary=summary, reason=reason)
     typer.echo(f"Decision recorded. [#{record.id}] {record.summary}")
 
@@ -48,6 +48,6 @@ def list_decisions(
         help="Maximum number of recent decision records to show.",
     ),
 ) -> None:
-    service = cli.build_decision_record_service()
+    service = bootstrap.build_decision_record_service()
     records = service.list_recent(limit=limit)
     display_decision_records(records)

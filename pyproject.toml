@@ -1,7 +1,7 @@
 [project]
 name = "alfred"
-version = "0.1.1"
-description = "A local-first CLI for capturing and reviewing notes."
+version = "0.1.2"
+description = "A local-first CLI for capturing and reviewing household memory."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

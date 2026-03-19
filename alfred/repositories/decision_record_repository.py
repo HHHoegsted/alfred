@@ -1,19 +1,19 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from alfred.models import DecisionRecord
 
 
 class DecisionRecordRepository:
-    def __init__(self, session: Session) -> None:
-        self.session = session
+    def __init__(self, session_factory) -> None:
+        self.session_factory = session_factory
 
     def create(self, summary: str, reason: str) -> DecisionRecord:
-        record = DecisionRecord(summary=summary, reason=reason)
-        self.session.add(record)
-        self.session.commit()
-        self.session.refresh(record)
-        return record
+        with self.session_factory.get_session() as session:
+            record = DecisionRecord(summary=summary, reason=reason)
+            session.add(record)
+            session.commit()
+            session.refresh(record)
+            return record
 
     def list_recent(self, limit: int = 20) -> list[DecisionRecord]:
         statement = (
@@ -21,4 +21,6 @@ class DecisionRecordRepository:
             .order_by(DecisionRecord.created_at.desc())
             .limit(limit)
         )
-        return list(self.session.scalars(statement).all())
+
+        with self.session_factory.get_session() as session:
+            return list(session.scalars(statement).all())

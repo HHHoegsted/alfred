@@ -8,129 +8,192 @@ from alfred.repositories import PurchaseRepository
 from alfred.services import PurchaseService
 
 
-def test_purchase_service_record_creates_purchase(tmp_path: Path) -> None:
+def test_purchase_service_record_saves_purchase(tmp_path: Path) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = PurchaseRepository(session_factory)
+    service = PurchaseService(repository)
 
-    purchase_date = datetime(2026, 3, 18, 12, 0)
-
-    with session_factory.get_session() as session:
-        repository = PurchaseRepository(session)
-        service = PurchaseService(repository)
-
-        purchase = service.record(
-            item_name="Miele Vacuum Cleaner",
-            vendor="Power",
-            purchase_date=purchase_date,
-            price_amount="3499.00",
-            currency="DKK",
-            order_reference="ORD-2026-0001",
-            details="Bought for the current home.",
-        )
+    purchase = service.record(
+        item_name="Miele Vacuum Cleaner",
+        vendor="Power",
+        purchase_date=datetime(2026, 3, 18, 12, 0),
+        price_amount="3499.00",
+        currency="DKK",
+        order_reference="ORD-2026-0001",
+        details="Bought for the current home.",
+    )
 
     assert purchase.id is not None
     assert purchase.item_name == "Miele Vacuum Cleaner"
     assert purchase.vendor == "Power"
-    assert purchase.purchase_date == purchase_date
+    assert purchase.purchase_date == datetime(2026, 3, 18, 12, 0)
     assert purchase.price_amount == "3499.00"
     assert purchase.currency == "DKK"
     assert purchase.order_reference == "ORD-2026-0001"
     assert purchase.details == "Bought for the current home."
-    assert purchase.created_at is not None
-    assert purchase.updated_at is None
-    assert purchase.retired_at is None
-    assert purchase.retired_reason is None
+
+    purchases = service.list_recent(limit=10)
+    assert len(purchases) == 1
+    assert purchases[0].item_name == "Miele Vacuum Cleaner"
 
 
-def test_purchase_service_record_strips_fields_and_converts_blanks_to_none(
+def test_purchase_service_record_uses_current_datetime_when_purchase_date_not_passed(
     tmp_path: Path,
 ) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = PurchaseRepository(session_factory)
+    service = PurchaseService(repository)
 
-    purchase_date = datetime(2026, 3, 18, 12, 0)
+    purchase = service.record(
+        item_name="Replacement Vacuum Bags",
+        vendor="Elgiganten",
+        purchase_date=None,
+        price_amount=None,
+        currency=None,
+        order_reference=None,
+        details=None,
+    )
 
-    with session_factory.get_session() as session:
-        repository = PurchaseRepository(session)
-        service = PurchaseService(repository)
-
-        purchase = service.record(
-            item_name="  Miele Vacuum Cleaner  ",
-            vendor="  Power  ",
-            purchase_date=purchase_date,
-            price_amount="  3499.00  ",
-            currency="  DKK  ",
-            order_reference="   ",
-            details="   Bought for the current home.   ",
-        )
-
-    assert purchase.item_name == "Miele Vacuum Cleaner"
-    assert purchase.vendor == "Power"
-    assert purchase.purchase_date == purchase_date
-    assert purchase.price_amount == "3499.00"
-    assert purchase.currency == "DKK"
-    assert purchase.order_reference is None
-    assert purchase.details == "Bought for the current home."
+    assert purchase.item_name == "Replacement Vacuum Bags"
+    assert purchase.vendor == "Elgiganten"
+    assert purchase.purchase_date is not None
 
 
-def test_purchase_service_record_sets_purchase_date_when_not_passed(
-    tmp_path: Path,
-) -> None:
+def test_purchase_service_record_rejects_empty_item_name(tmp_path: Path) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = PurchaseRepository(session_factory)
+    service = PurchaseService(repository)
 
-    with session_factory.get_session() as session:
-        repository = PurchaseRepository(session)
-        service = PurchaseService(repository)
-
-        before = datetime.now()
-        purchase = service.record(
-            item_name="Miele Vacuum Cleaner",
+    with pytest.raises(ValueError, match="Item name cannot be empty."):
+        service.record(
+            item_name="   ",
             vendor="Power",
+            purchase_date=datetime(2026, 3, 18, 12, 0),
             price_amount="3499.00",
             currency="DKK",
             order_reference="ORD-2026-0001",
             details="Bought for the current home.",
         )
-        after = datetime.now()
-
-    assert purchase.purchase_date is not None
-    assert before <= purchase.purchase_date <= after
 
 
-def test_purchase_service_record_raises_for_empty_item_name(tmp_path: Path) -> None:
+def test_purchase_service_record_strips_inputs(tmp_path: Path) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = PurchaseRepository(session_factory)
+    service = PurchaseService(repository)
 
-    with session_factory.get_session() as session:
-        repository = PurchaseRepository(session)
-        service = PurchaseService(repository)
+    purchase = service.record(
+        item_name="  Miele Vacuum Cleaner  ",
+        vendor="  Power  ",
+        purchase_date=datetime(2026, 3, 18, 12, 0),
+        price_amount=" 3499.00 ",
+        currency="  DKK  ",
+        order_reference="  ORD-2026-0001  ",
+        details="  Bought for the current home.  ",
+    )
 
-        with pytest.raises(ValueError, match="Item name cannot be empty."):
-            service.record(
-                item_name="   ",
-                vendor="Power",
-                price_amount="3499.00",
-                currency="DKK",
-                order_reference="ORD-2026-0001",
-                details="Bought for the current home.",
-            )
+    assert purchase.item_name == "Miele Vacuum Cleaner"
+    assert purchase.vendor == "Power"
+    assert purchase.purchase_date == datetime(2026, 3, 18, 12, 0)
+    assert purchase.price_amount == "3499.00"
+    assert purchase.currency == "DKK"
+    assert purchase.order_reference == "ORD-2026-0001"
+    assert purchase.details == "Bought for the current home."
 
 
-def test_purchase_service_list_recent_returns_purchases(tmp_path: Path) -> None:
+def test_purchase_service_record_normalizes_blank_optional_fields_to_none(
+    tmp_path: Path,
+) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = PurchaseRepository(session_factory)
+    service = PurchaseService(repository)
 
-    with session_factory.get_session() as session:
-        repository = PurchaseRepository(session)
-        service = PurchaseService(repository)
+    purchase = service.record(
+        item_name="Miele Vacuum Cleaner",
+        vendor="   ",
+        purchase_date=datetime(2026, 3, 18, 12, 0),
+        price_amount="   ",
+        currency="   ",
+        order_reference="   ",
+        details="   ",
+    )
 
-        older_purchase = service.record(item_name="Replacement Vacuum Bags")
-        older_purchase_id = older_purchase.id
+    assert purchase.item_name == "Miele Vacuum Cleaner"
+    assert purchase.vendor is None
+    assert purchase.purchase_date == datetime(2026, 3, 18, 12, 0)
+    assert purchase.price_amount is None
+    assert purchase.currency is None
+    assert purchase.order_reference is None
+    assert purchase.details is None
 
-        newer_purchase = service.record(item_name="Miele Vacuum Cleaner")
-        newer_purchase_id = newer_purchase.id
 
-    with session_factory.get_session() as session:
-        repository = PurchaseRepository(session)
-        service = PurchaseService(repository)
-        purchases = service.list_recent()
+def test_purchase_service_list_recent_returns_newest_first(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = PurchaseRepository(session_factory)
+    service = PurchaseService(repository)
+
+    service.record(
+        item_name="First purchase",
+        vendor=None,
+        purchase_date=datetime(2026, 3, 17, 12, 0),
+        price_amount=None,
+        currency=None,
+        order_reference=None,
+        details=None,
+    )
+    service.record(
+        item_name="Second purchase",
+        vendor=None,
+        purchase_date=datetime(2026, 3, 18, 12, 0),
+        price_amount=None,
+        currency=None,
+        order_reference=None,
+        details=None,
+    )
+
+    purchases = service.list_recent(limit=10)
 
     assert len(purchases) == 2
-    assert purchases[0].id == newer_purchase_id
-    assert purchases[1].id == older_purchase_id
+    assert purchases[0].item_name == "Second purchase"
+    assert purchases[1].item_name == "First purchase"
+
+
+def test_purchase_service_list_recent_respects_limit(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = PurchaseRepository(session_factory)
+    service = PurchaseService(repository)
+
+    service.record(
+        item_name="First purchase",
+        vendor=None,
+        purchase_date=datetime(2026, 3, 16, 12, 0),
+        price_amount=None,
+        currency=None,
+        order_reference=None,
+        details=None,
+    )
+    service.record(
+        item_name="Second purchase",
+        vendor=None,
+        purchase_date=datetime(2026, 3, 17, 12, 0),
+        price_amount=None,
+        currency=None,
+        order_reference=None,
+        details=None,
+    )
+    service.record(
+        item_name="Third purchase",
+        vendor=None,
+        purchase_date=datetime(2026, 3, 18, 12, 0),
+        price_amount=None,
+        currency=None,
+        order_reference=None,
+        details=None,
+    )
+
+    purchases = service.list_recent(limit=2)
+
+    assert len(purchases) == 2

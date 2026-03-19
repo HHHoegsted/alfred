@@ -1,6 +1,6 @@
 import typer
 
-import alfred.cli as cli
+import alfred.bootstrap as bootstrap
 from alfred.common import format_timestamp
 from alfred.models import Note
 
@@ -25,7 +25,7 @@ def capture(
         typer.echo("Note cannot be empty.")
         raise typer.Exit(code=1)
 
-    service = cli.build_note_service()
+    service = bootstrap.build_note_service()
     service.capture(cleaned_text)
     typer.echo("Note captured.")
 
@@ -40,7 +40,7 @@ def list_notes(
         help="Maximum number of recent notes to show.",
     ),
 ) -> None:
-    service = cli.build_note_service()
+    service = bootstrap.build_note_service()
     notes: list[Note] = service.list_recent(limit=limit)
 
     if not notes:
@@ -66,7 +66,7 @@ def search(
         typer.echo("Search query cannot be empty.")
         raise typer.Exit(code=1)
 
-    service = cli.build_note_service()
+    service = bootstrap.build_note_service()
     notes: list[Note] = service.search(query=cleaned_query, limit=limit)
 
     if not notes:

@@ -1,10 +1,10 @@
 from datetime import datetime
 from pathlib import Path
 
+import alfred.commands.purchase as purchase_commands
 from typer.testing import CliRunner
 
 from alfred import cli
-from alfred.bootstrap import build_purchase_service
 
 
 runner = CliRunner()
@@ -14,10 +14,15 @@ def test_purchase_record_saves_purchase_and_prints_confirmation(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    original_build_purchase_service = purchase_commands.bootstrap.build_purchase_service
+
+    def build_purchase_service_for_test():
+        return original_build_purchase_service(data_dir=tmp_path)
+
     monkeypatch.setattr(
-        cli,
+        purchase_commands.bootstrap,
         "build_purchase_service",
-        lambda: build_purchase_service(data_dir=tmp_path),
+        build_purchase_service_for_test,
     )
 
     result = runner.invoke(
@@ -45,7 +50,7 @@ def test_purchase_record_saves_purchase_and_prints_confirmation(
     assert "Recorded purchase" in result.stdout
     assert "Miele Vacuum Cleaner" in result.stdout
 
-    service = cli.build_purchase_service()
+    service = original_build_purchase_service(data_dir=tmp_path)
     purchases = service.list_recent(limit=10)
 
     assert len(purchases) == 1
@@ -62,10 +67,15 @@ def test_purchase_record_uses_current_datetime_when_purchase_date_not_passed(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    original_build_purchase_service = purchase_commands.bootstrap.build_purchase_service
+
+    def build_purchase_service_for_test():
+        return original_build_purchase_service(data_dir=tmp_path)
+
     monkeypatch.setattr(
-        cli,
+        purchase_commands.bootstrap,
         "build_purchase_service",
-        lambda: build_purchase_service(data_dir=tmp_path),
+        build_purchase_service_for_test,
     )
 
     result = runner.invoke(
@@ -83,7 +93,7 @@ def test_purchase_record_uses_current_datetime_when_purchase_date_not_passed(
     assert "Recorded purchase" in result.stdout
     assert "Replacement Vacuum Bags" in result.stdout
 
-    service = cli.build_purchase_service()
+    service = original_build_purchase_service(data_dir=tmp_path)
     purchases = service.list_recent(limit=10)
 
     assert len(purchases) == 1
@@ -96,10 +106,15 @@ def test_purchase_record_rejects_empty_item_name(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    original_build_purchase_service = purchase_commands.bootstrap.build_purchase_service
+
+    def build_purchase_service_for_test():
+        return original_build_purchase_service(data_dir=tmp_path)
+
     monkeypatch.setattr(
-        cli,
+        purchase_commands.bootstrap,
         "build_purchase_service",
-        lambda: build_purchase_service(data_dir=tmp_path),
+        build_purchase_service_for_test,
     )
 
     result = runner.invoke(
@@ -119,10 +134,15 @@ def test_purchase_record_rejects_invalid_purchase_date(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    original_build_purchase_service = purchase_commands.bootstrap.build_purchase_service
+
+    def build_purchase_service_for_test():
+        return original_build_purchase_service(data_dir=tmp_path)
+
     monkeypatch.setattr(
-        cli,
+        purchase_commands.bootstrap,
         "build_purchase_service",
-        lambda: build_purchase_service(data_dir=tmp_path),
+        build_purchase_service_for_test,
     )
 
     result = runner.invoke(
@@ -144,13 +164,18 @@ def test_purchase_list_shows_purchases(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    original_build_purchase_service = purchase_commands.bootstrap.build_purchase_service
+
+    def build_purchase_service_for_test():
+        return original_build_purchase_service(data_dir=tmp_path)
+
     monkeypatch.setattr(
-        cli,
+        purchase_commands.bootstrap,
         "build_purchase_service",
-        lambda: build_purchase_service(data_dir=tmp_path),
+        build_purchase_service_for_test,
     )
 
-    service = cli.build_purchase_service()
+    service = original_build_purchase_service(data_dir=tmp_path)
     service.record(
         item_name="Replacement Vacuum Bags",
         vendor="Elgiganten",
@@ -183,10 +208,15 @@ def test_purchase_list_shows_no_purchases_message_when_empty(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    original_build_purchase_service = purchase_commands.bootstrap.build_purchase_service
+
+    def build_purchase_service_for_test():
+        return original_build_purchase_service(data_dir=tmp_path)
+
     monkeypatch.setattr(
-        cli,
+        purchase_commands.bootstrap,
         "build_purchase_service",
-        lambda: build_purchase_service(data_dir=tmp_path),
+        build_purchase_service_for_test,
     )
 
     result = runner.invoke(cli.app, ["purchase", "list"])
@@ -199,13 +229,18 @@ def test_purchase_list_respects_limit(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
+    original_build_purchase_service = purchase_commands.bootstrap.build_purchase_service
+
+    def build_purchase_service_for_test():
+        return original_build_purchase_service(data_dir=tmp_path)
+
     monkeypatch.setattr(
-        cli,
+        purchase_commands.bootstrap,
         "build_purchase_service",
-        lambda: build_purchase_service(data_dir=tmp_path),
+        build_purchase_service_for_test,
     )
 
-    service = cli.build_purchase_service()
+    service = original_build_purchase_service(data_dir=tmp_path)
     service.record(
         item_name="Replacement Vacuum Bags",
         purchase_date=datetime(2026, 3, 17, 12, 0),

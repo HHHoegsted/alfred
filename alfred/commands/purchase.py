@@ -1,7 +1,7 @@
 import typer
 from datetime import datetime
 
-import alfred.cli as cli
+import alfred.bootstrap as bootstrap
 from alfred.common import format_timestamp
 from alfred.models import Purchase
 
@@ -85,7 +85,7 @@ def record_purchase(
             )
             raise typer.Exit(code=1) from exc
 
-    service = cli.build_purchase_service()
+    service = bootstrap.build_purchase_service()
 
     try:
         purchase = service.record(
@@ -113,7 +113,7 @@ def list_purchases(
         help="Maximum number of purchases to show.",
     ),
 ) -> None:
-    service = cli.build_purchase_service()
+    service = bootstrap.build_purchase_service()
     purchases = service.list_recent(limit=limit)
 
     if not purchases:

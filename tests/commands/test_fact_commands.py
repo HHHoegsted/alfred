@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import alfred.commands.fact as fact_commands
 from typer.testing import CliRunner
 
 from alfred import cli
@@ -12,13 +13,15 @@ def test_fact_add_records_household_fact(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    original_build_household_fact_service = cli.build_household_fact_service
+    original_build_household_fact_service = (
+        fact_commands.bootstrap.build_household_fact_service
+    )
 
     def build_household_fact_service_for_test():
         return original_build_household_fact_service(data_dir=tmp_path)
 
     monkeypatch.setattr(
-        cli,
+        fact_commands.bootstrap,
         "build_household_fact_service",
         build_household_fact_service_for_test,
     )
@@ -40,7 +43,7 @@ def test_fact_add_records_household_fact(
     assert result.exit_code == 0
     assert "Household fact recorded." in result.stdout
 
-    service = cli.build_household_fact_service()
+    service = original_build_household_fact_service(data_dir=tmp_path)
     facts = service.list_recent(limit=10)
 
     assert len(facts) == 1
@@ -53,13 +56,15 @@ def test_fact_add_rejects_blank_subject(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    original_build_household_fact_service = cli.build_household_fact_service
+    original_build_household_fact_service = (
+        fact_commands.bootstrap.build_household_fact_service
+    )
 
     def build_household_fact_service_for_test():
         return original_build_household_fact_service(data_dir=tmp_path)
 
     monkeypatch.setattr(
-        cli,
+        fact_commands.bootstrap,
         "build_household_fact_service",
         build_household_fact_service_for_test,
     )
@@ -84,13 +89,15 @@ def test_fact_add_rejects_blank_value(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    original_build_household_fact_service = cli.build_household_fact_service
+    original_build_household_fact_service = (
+        fact_commands.bootstrap.build_household_fact_service
+    )
 
     def build_household_fact_service_for_test():
         return original_build_household_fact_service(data_dir=tmp_path)
 
     monkeypatch.setattr(
-        cli,
+        fact_commands.bootstrap,
         "build_household_fact_service",
         build_household_fact_service_for_test,
     )
@@ -115,18 +122,20 @@ def test_fact_update_updates_existing_household_fact(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    original_build_household_fact_service = cli.build_household_fact_service
+    original_build_household_fact_service = (
+        fact_commands.bootstrap.build_household_fact_service
+    )
 
     def build_household_fact_service_for_test():
         return original_build_household_fact_service(data_dir=tmp_path)
 
     monkeypatch.setattr(
-        cli,
+        fact_commands.bootstrap,
         "build_household_fact_service",
         build_household_fact_service_for_test,
     )
 
-    service = cli.build_household_fact_service()
+    service = original_build_household_fact_service(data_dir=tmp_path)
     fact = service.record(
         subject="Water shutoff valve",
         value="Under kitchen sink",
@@ -149,7 +158,7 @@ def test_fact_update_updates_existing_household_fact(
     assert result.exit_code == 0
     assert "Household fact updated." in result.stdout
 
-    refreshed_service = cli.build_household_fact_service()
+    refreshed_service = original_build_household_fact_service(data_dir=tmp_path)
     facts = refreshed_service.list_recent(limit=10)
 
     assert len(facts) == 1
@@ -163,18 +172,20 @@ def test_fact_update_rejects_blank_value(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    original_build_household_fact_service = cli.build_household_fact_service
+    original_build_household_fact_service = (
+        fact_commands.bootstrap.build_household_fact_service
+    )
 
     def build_household_fact_service_for_test():
         return original_build_household_fact_service(data_dir=tmp_path)
 
     monkeypatch.setattr(
-        cli,
+        fact_commands.bootstrap,
         "build_household_fact_service",
         build_household_fact_service_for_test,
     )
 
-    service = cli.build_household_fact_service()
+    service = original_build_household_fact_service(data_dir=tmp_path)
     fact = service.record(
         subject="Water shutoff valve",
         value="Under kitchen sink",
@@ -199,13 +210,15 @@ def test_fact_update_rejects_missing_fact(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    original_build_household_fact_service = cli.build_household_fact_service
+    original_build_household_fact_service = (
+        fact_commands.bootstrap.build_household_fact_service
+    )
 
     def build_household_fact_service_for_test():
         return original_build_household_fact_service(data_dir=tmp_path)
 
     monkeypatch.setattr(
-        cli,
+        fact_commands.bootstrap,
         "build_household_fact_service",
         build_household_fact_service_for_test,
     )
@@ -229,18 +242,20 @@ def test_fact_retire_retires_existing_household_fact(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    original_build_household_fact_service = cli.build_household_fact_service
+    original_build_household_fact_service = (
+        fact_commands.bootstrap.build_household_fact_service
+    )
 
     def build_household_fact_service_for_test():
         return original_build_household_fact_service(data_dir=tmp_path)
 
     monkeypatch.setattr(
-        cli,
+        fact_commands.bootstrap,
         "build_household_fact_service",
         build_household_fact_service_for_test,
     )
 
-    service = cli.build_household_fact_service()
+    service = original_build_household_fact_service(data_dir=tmp_path)
     fact = service.record(
         subject="Guest Wi-Fi password",
         value="OldPassword123",
@@ -260,7 +275,8 @@ def test_fact_retire_retires_existing_household_fact(
     assert result.exit_code == 0
     assert "Household fact retired." in result.stdout
 
-    facts = service.list_recent(limit=10)
+    refreshed_service = original_build_household_fact_service(data_dir=tmp_path)
+    facts = refreshed_service.list_recent(limit=10)
     assert len(facts) == 0
 
 
@@ -268,13 +284,15 @@ def test_fact_retire_rejects_missing_fact(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    original_build_household_fact_service = cli.build_household_fact_service
+    original_build_household_fact_service = (
+        fact_commands.bootstrap.build_household_fact_service
+    )
 
     def build_household_fact_service_for_test():
         return original_build_household_fact_service(data_dir=tmp_path)
 
     monkeypatch.setattr(
-        cli,
+        fact_commands.bootstrap,
         "build_household_fact_service",
         build_household_fact_service_for_test,
     )
@@ -298,18 +316,20 @@ def test_fact_list_shows_recorded_household_facts(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    original_build_household_fact_service = cli.build_household_fact_service
+    original_build_household_fact_service = (
+        fact_commands.bootstrap.build_household_fact_service
+    )
 
     def build_household_fact_service_for_test():
         return original_build_household_fact_service(data_dir=tmp_path)
 
     monkeypatch.setattr(
-        cli,
+        fact_commands.bootstrap,
         "build_household_fact_service",
         build_household_fact_service_for_test,
     )
 
-    service = cli.build_household_fact_service()
+    service = original_build_household_fact_service(data_dir=tmp_path)
     service.record(
         subject="Wi-Fi SSID",
         value="WorldHouseNet",
@@ -326,13 +346,15 @@ def test_fact_list_shows_no_household_facts_message_when_empty(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    original_build_household_fact_service = cli.build_household_fact_service
+    original_build_household_fact_service = (
+        fact_commands.bootstrap.build_household_fact_service
+    )
 
     def build_household_fact_service_for_test():
         return original_build_household_fact_service(data_dir=tmp_path)
 
     monkeypatch.setattr(
-        cli,
+        fact_commands.bootstrap,
         "build_household_fact_service",
         build_household_fact_service_for_test,
     )
@@ -347,18 +369,20 @@ def test_fact_list_hides_retired_household_facts(
     monkeypatch,
     tmp_path: Path,
 ) -> None:
-    original_build_household_fact_service = cli.build_household_fact_service
+    original_build_household_fact_service = (
+        fact_commands.bootstrap.build_household_fact_service
+    )
 
     def build_household_fact_service_for_test():
         return original_build_household_fact_service(data_dir=tmp_path)
 
     monkeypatch.setattr(
-        cli,
+        fact_commands.bootstrap,
         "build_household_fact_service",
         build_household_fact_service_for_test,
     )
 
-    service = cli.build_household_fact_service()
+    service = original_build_household_fact_service(data_dir=tmp_path)
     fact = service.record(
         subject="Guest Wi-Fi password",
         value="OldPassword123",
