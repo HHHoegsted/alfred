@@ -1,81 +1,107 @@
 from pathlib import Path
 
-from alfred.db import SQLAlchemySessionFactory
-from alfred.repositories import (
-    AssetRepository,
-    DecisionRecordRepository,
-    HouseholdFactRepository,
-    NoteRepository,
-    PersonRepository,
-    PurchaseRepository,
-)
-from alfred.services import (
-    AssetService,
-    DecisionRecordService,
-    HouseholdFactService,
-    NoteService,
-    PersonService,
-    PurchaseService,
-)
+from alfred.bootstrap import build_household_fact_service
+from alfred.repositories import HouseholdFactRepository
 
 
-def get_data_dir(data_dir: Path | None = None) -> Path:
-    if data_dir is not None:
-        return data_dir
-
-    return Path.home() / ".alfred"
+def build_household_fact_repository(tmp_path: Path) -> HouseholdFactRepository:
+    service = build_household_fact_service(data_dir=tmp_path)
+    return service.repository
 
 
-def get_db_path(data_dir: Path | None = None) -> Path:
-    return get_data_dir(data_dir) / "alfred.db"
+def test_create_stores_household_fact(tmp_path: Path) -> None:
+    repository = build_household_fact_repository(tmp_path)
+
+    fact = repository.create(
+        subject="Water shutoff valve",
+        value="Under kitchen sink",
+        details="Turn clockwise to close",
+    )
+
+    assert fact.id is not None
+    assert fact.subject == "Water shutoff valve"
+    assert fact.value == "Under kitchen sink"
+    assert fact.details == "Turn clockwise to close"
 
 
-def init_sqlalchemy(data_dir: Path | None = None) -> SQLAlchemySessionFactory:
-    db_path = get_db_path(data_dir)
-    session_factory = SQLAlchemySessionFactory(db_path)
-    session_factory.create_all()
-    return session_factory
+def test_get_by_id_returns_household_fact(tmp_path: Path) -> None:
+    repository = build_household_fact_repository(tmp_path)
+    created_fact = repository.create(
+        subject="Fuse box",
+        value="Utility room",
+        details="Label inside door",
+    )
+
+    fact = repository.get_by_id(created_fact.id)
+
+    assert fact is not None
+    assert fact.id == created_fact.id
+    assert fact.subject == "Fuse box"
 
 
-def build_note_service(data_dir: Path | None = None) -> NoteService:
-    session_factory = init_sqlalchemy(data_dir)
-    repository = NoteRepository(session_factory)
-    return NoteService(repository)
+def test_get_by_id_returns_none_for_missing_household_fact(tmp_path: Path) -> None:
+    repository = build_household_fact_repository(tmp_path)
+
+    fact = repository.get_by_id(999)
+
+    assert fact is None
 
 
-def build_decision_record_service(
-    data_dir: Path | None = None,
-) -> DecisionRecordService:
-    session_factory = init_sqlalchemy(data_dir)
-    repository = DecisionRecordRepository(session_factory)
-    return DecisionRecordService(repository)
+def test_update_changes_value_and_details(tmp_path: Path) -> None:
+    repository = build_household_fact_repository(tmp_path)
+    fact = repository.create(
+        subject="Wi-Fi router",
+        value="Office shelf",
+        details="Behind the monitor",
+    )
+
+    updated_fact = repository.update(
+        fact,
+        value="Hall cupboard",
+        details="Moved during cleanup",
+    )
+
+    assert updated_fact.id == fact.id
+    assert updated_fact.subject == "Wi-Fi router"
+    assert updated_fact.value == "Hall cupboard"
+    assert updated_fact.details == "Moved during cleanup"
+    assert updated_fact.updated_at is not None
 
 
-def build_person_service(data_dir: Path | None = None) -> PersonService:
-    session_factory = init_sqlalchemy(data_dir)
-    repository = PersonRepository(session_factory)
-    return PersonService(repository)
+def test_retire_sets_retired_fields(tmp_path: Path) -> None:
+    repository = build_household_fact_repository(tmp_path)
+    fact = repository.create(
+        subject="Spare key",
+        value="Top drawer",
+        details=None,
+    )
+
+    retired_fact = repository.retire(
+        fact,
+        reason="No longer stored there",
+    )
+
+    assert retired_fact.id == fact.id
+    assert retired_fact.retired_at is not None
+    assert retired_fact.retired_reason == "No longer stored there"
 
 
-def build_household_fact_service(
-    data_dir: Path | None = None,
-) -> HouseholdFactService:
-    session_factory = init_sqlalchemy(data_dir)
-    repository = HouseholdFactRepository(session_factory)
-    return HouseholdFactService(repository)
+def test_list_recent_returns_non_retired_facts_newest_first(tmp_path: Path) -> None:
+    repository = build_household_fact_repository(tmp_path)
 
+    first_fact = repository.create(
+        subject="Old fact",
+        value="Old value",
+        details=None,
+    )
+    second_fact = repository.create(
+        subject="New fact",
+        value="New value",
+        details=None,
+    )
 
-def build_asset_service(data_dir: Path | None = None) -> AssetService:
-    session_factory = init_sqlalchemy(data_dir)
+    repository.retire(first_fact, reason="Outdated")
 
-    with session_factory.get_session() as session:
-        repository = AssetRepository(session)
-        return AssetService(repository)
+    facts = repository.list_recent()
 
-
-def build_purchase_service(data_dir: Path | None = None) -> PurchaseService:
-    session_factory = init_sqlalchemy(data_dir)
-
-    with session_factory.get_session() as session:
-        repository = PurchaseRepository(session)
-        return PurchaseService(repository)
+    assert [fact.id for fact in facts] == [second_fact.id]
