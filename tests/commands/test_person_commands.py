@@ -55,8 +55,8 @@ def test_person_add_rejects_empty_name() -> None:
         ],
     )
 
-    assert result.exit_code == 2
-    assert "Person name cannot be empty." in result.stderr
+    assert result.exit_code == 1
+    assert "Person name cannot be empty." in result.stdout
 
 
 def test_person_list_displays_people_and_household_status(
