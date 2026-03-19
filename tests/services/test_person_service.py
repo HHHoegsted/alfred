@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from alfred.bootstrap import init_sqlalchemy
 from alfred.repositories import PersonRepository
 from alfred.services import PersonService
@@ -25,7 +27,7 @@ def test_person_service_register_saves_person(tmp_path: Path) -> None:
     assert people[0].is_household_member is True
 
 
-def test_person_service_register_preserves_name_as_provided(tmp_path: Path) -> None:
+def test_person_service_register_strips_name(tmp_path: Path) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
     repository = PersonRepository(session_factory)
     service = PersonService(repository)
@@ -35,7 +37,19 @@ def test_person_service_register_preserves_name_as_provided(tmp_path: Path) -> N
         is_household_member=True,
     )
 
-    assert person.name == "  Sara  "
+    assert person.name == "Sara"
+
+
+def test_person_service_register_rejects_empty_name(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = PersonRepository(session_factory)
+    service = PersonService(repository)
+
+    with pytest.raises(ValueError, match="Person name cannot be empty."):
+        service.register(
+            name="   ",
+            is_household_member=True,
+        )
 
 
 def test_person_service_list_recent_returns_newest_first(

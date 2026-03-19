@@ -29,27 +29,18 @@ def add(
         help="Optional extra context for the fact.",
     ),
 ) -> None:
-    cleaned_subject = subject.strip()
-    cleaned_value = value.strip()
-    cleaned_details = details.strip() if details is not None else None
-
-    if not cleaned_subject:
-        typer.echo("Subject cannot be empty.")
-        raise typer.Exit(code=1)
-
-    if not cleaned_value:
-        typer.echo("Value cannot be empty.")
-        raise typer.Exit(code=1)
-
-    if cleaned_details == "":
-        cleaned_details = None
-
     service = bootstrap.build_household_fact_service()
-    service.record(
-        subject=cleaned_subject,
-        value=cleaned_value,
-        details=cleaned_details,
-    )
+
+    try:
+        service.record(
+            subject=subject,
+            value=value,
+            details=details,
+        )
+    except ValueError as exc:
+        typer.echo(str(exc))
+        raise typer.Exit(code=1) from exc
+
     typer.echo("Household fact recorded.")
 
 
@@ -63,23 +54,13 @@ def update(
         help="Optional updated extra context for the fact.",
     ),
 ) -> None:
-    cleaned_value = value.strip()
-    cleaned_details = details.strip() if details is not None else None
-
-    if not cleaned_value:
-        typer.echo("Value cannot be empty.")
-        raise typer.Exit(code=1)
-
-    if cleaned_details == "":
-        cleaned_details = None
-
     service = bootstrap.build_household_fact_service()
 
     try:
         service.update(
             fact_id=fact_id,
-            value=cleaned_value,
-            details=cleaned_details,
+            value=value,
+            details=details,
         )
     except ValueError as exc:
         typer.echo(str(exc))
@@ -97,17 +78,12 @@ def retire(
         help="Optional reason the fact is no longer active.",
     ),
 ) -> None:
-    cleaned_reason = reason.strip() if reason is not None else None
-
-    if cleaned_reason == "":
-        cleaned_reason = None
-
     service = bootstrap.build_household_fact_service()
 
     try:
         service.retire(
             fact_id=fact_id,
-            reason=cleaned_reason,
+            reason=reason,
         )
     except ValueError as exc:
         typer.echo(str(exc))
