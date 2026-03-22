@@ -15,12 +15,11 @@ class DecisionRecordRepository:
             session.refresh(record)
             return record
 
-    def list_recent(self, limit: int = 20) -> list[DecisionRecord]:
+    def list_recent(self, limit: int = 10) -> list[DecisionRecord]:
         statement = (
             select(DecisionRecord)
-            .order_by(DecisionRecord.created_at.desc())
+            .order_by(DecisionRecord.created_at.desc(), DecisionRecord.id.desc())
             .limit(limit)
         )
-
         with self.session_factory.get_session() as session:
             return list(session.scalars(statement).all())

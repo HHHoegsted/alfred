@@ -5,3 +5,4 @@ __pycache__/
 alfred.egg-info/
 vision/
 vision.md
+.coverage

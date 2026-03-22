@@ -2,16 +2,13 @@ import typer
 
 import alfred.bootstrap as bootstrap
 from alfred.common import format_timestamp
+from alfred.models import DecisionRecord
 
 
 decision_app = typer.Typer(help="Record and review structured decisions.")
 
 
-def display_decision_records(records: list) -> None:
-    if not records:
-        typer.echo("No decision records found.")
-        return
-
+def display_decision_records(records: list[DecisionRecord]) -> None:
     for record in records:
         pretty_timestamp = format_timestamp(record.created_at.isoformat())
         typer.echo(f"[{record.id}] {pretty_timestamp}")
@@ -41,7 +38,8 @@ def record_decision(
         typer.echo(str(exc))
         raise typer.Exit(code=1) from exc
 
-    typer.echo(f"Decision recorded. [#{record.id}] {record.summary}")
+    typer.echo("Decision recorded.")
+    typer.echo(f"[{record.id}] {record.summary}")
 
 
 @decision_app.command("list")
@@ -56,4 +54,9 @@ def list_decisions(
 ) -> None:
     service = bootstrap.build_decision_record_service()
     records = service.list_recent(limit=limit)
+
+    if not records:
+        typer.echo("No decision records found.")
+        return
+
     display_decision_records(records)

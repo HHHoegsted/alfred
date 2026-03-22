@@ -25,7 +25,7 @@ class AssetService:
         details = details.strip() if details is not None else None
 
         if not name:
-            raise ValueError("Name cannot be empty.")
+            raise ValueError("Asset name cannot be empty.")
 
         if category == "":
             category = None
@@ -55,5 +55,5 @@ class AssetService:
             details=details,
         )
 
-    def list_recent(self, limit: int = 20) -> list[Asset]:
+    def list_recent(self, limit: int = 10) -> list[Asset]:
         return self.repository.list_recent(limit=limit)

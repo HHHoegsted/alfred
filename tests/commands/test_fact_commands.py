@@ -42,6 +42,7 @@ def test_fact_add_records_household_fact(
 
     assert result.exit_code == 0
     assert "Household fact recorded." in result.stdout
+    assert "[1] Water shutoff valve" in result.stdout
 
     service = original_build_household_fact_service(data_dir=tmp_path)
     facts = service.list_recent(limit=10)
@@ -157,6 +158,7 @@ def test_fact_update_updates_existing_household_fact(
 
     assert result.exit_code == 0
     assert "Household fact updated." in result.stdout
+    assert f"[{fact.id}] Water shutoff valve" in result.stdout
 
     refreshed_service = original_build_household_fact_service(data_dir=tmp_path)
     facts = refreshed_service.list_recent(limit=10)
@@ -274,6 +276,7 @@ def test_fact_retire_retires_existing_household_fact(
 
     assert result.exit_code == 0
     assert "Household fact retired." in result.stdout
+    assert f"[{fact.id}] Guest Wi-Fi password" in result.stdout
 
     refreshed_service = original_build_household_fact_service(data_dir=tmp_path)
     facts = refreshed_service.list_recent(limit=10)
@@ -398,3 +401,37 @@ def test_fact_list_hides_retired_household_facts(
     assert "Guest Wi-Fi password" not in result.stdout
     assert "OldPassword123" not in result.stdout
     assert "No household facts found." in result.stdout
+
+
+def test_fact_list_accepts_short_limit_alias(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    original_build_household_fact_service = (
+        fact_commands.bootstrap.build_household_fact_service
+    )
+
+    def build_household_fact_service_for_test():
+        return original_build_household_fact_service(data_dir=tmp_path)
+
+    monkeypatch.setattr(
+        fact_commands.bootstrap,
+        "build_household_fact_service",
+        build_household_fact_service_for_test,
+    )
+
+    service = original_build_household_fact_service(data_dir=tmp_path)
+    service.record(
+        subject="First fact",
+        value="First value",
+    )
+    service.record(
+        subject="Second fact",
+        value="Second value",
+    )
+
+    result = runner.invoke(cli.app, ["fact", "list", "-n", "1"])
+
+    assert result.exit_code == 0
+    assert "Second fact" in result.stdout
+    assert "First fact" not in result.stdout

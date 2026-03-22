@@ -22,12 +22,11 @@ class PersonRepository:
             session.refresh(person)
             return person
 
-    def list_recent(self, limit: int = 20) -> list[Person]:
+    def list_recent(self, limit: int = 10) -> list[Person]:
         statement = (
             select(Person)
-            .order_by(Person.created_at.desc())
+            .order_by(Person.created_at.desc(), Person.id.desc())
             .limit(limit)
         )
-
         with self.session_factory.get_session() as session:
             return list(session.scalars(statement).all())

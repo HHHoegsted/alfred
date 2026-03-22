@@ -32,7 +32,7 @@ def add(
     service = bootstrap.build_household_fact_service()
 
     try:
-        service.record(
+        fact = service.record(
             subject=subject,
             value=value,
             details=details,
@@ -42,6 +42,7 @@ def add(
         raise typer.Exit(code=1) from exc
 
     typer.echo("Household fact recorded.")
+    typer.echo(f"[{fact.id}] {fact.subject}")
 
 
 @fact_app.command("update")
@@ -57,7 +58,7 @@ def update(
     service = bootstrap.build_household_fact_service()
 
     try:
-        service.update(
+        fact = service.update(
             fact_id=fact_id,
             value=value,
             details=details,
@@ -67,6 +68,7 @@ def update(
         raise typer.Exit(code=1) from exc
 
     typer.echo("Household fact updated.")
+    typer.echo(f"[{fact.id}] {fact.subject}")
 
 
 @fact_app.command("retire")
@@ -81,7 +83,7 @@ def retire(
     service = bootstrap.build_household_fact_service()
 
     try:
-        service.retire(
+        fact = service.retire(
             fact_id=fact_id,
             reason=reason,
         )
@@ -90,6 +92,7 @@ def retire(
         raise typer.Exit(code=1) from exc
 
     typer.echo("Household fact retired.")
+    typer.echo(f"[{fact.id}] {fact.subject}")
 
 
 @fact_app.command("list")

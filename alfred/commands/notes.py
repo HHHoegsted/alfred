@@ -26,8 +26,9 @@ def capture(
         raise typer.Exit(code=1)
 
     service = bootstrap.build_note_service()
-    service.capture(cleaned_text)
+    note = service.capture(cleaned_text)
     typer.echo("Note captured.")
+    typer.echo(f"[{note.id}] {note.text}")
 
 
 @notes_app.command("list")
