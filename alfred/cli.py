@@ -1,6 +1,7 @@
 import typer
 
 from alfred.commands.assets import asset_app
+from alfred.commands.care_instructions import care_instruction_app
 from alfred.commands.decisions import decision_app
 from alfred.commands.fact import fact_app
 from alfred.commands.help_memory import help_memory
@@ -15,6 +16,7 @@ app = typer.Typer(
 
 
 app.add_typer(asset_app, name="asset")
+app.add_typer(care_instruction_app, name="care")
 app.add_typer(decision_app, name="decision")
 app.add_typer(fact_app, name="fact")
 app.add_typer(notes_app, name="note")
