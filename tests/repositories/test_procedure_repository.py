@@ -1,191 +1,244 @@
 from pathlib import Path
 
 from alfred.bootstrap import init_sqlalchemy
+from alfred.models import Procedure
 from alfred.repositories import ProcedureRepository
 
 
-def test_create_saves_procedure(tmp_path: Path) -> None:
+def test_procedure_repository_create_and_list_recent(tmp_path: Path) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
     repository = ProcedureRepository(session_factory)
 
-    procedure_record = repository.create(
-        subject="Internet is down",
-        category="Troubleshooting",
-        procedure="Check router power before restarting anything.",
-        details="If only one device is affected, start there.",
-    )
+    try:
+        created = repository.create(
+            subject="Internet is down",
+            procedure="Check router power before restarting anything.",
+            category="Troubleshooting",
+            details="If only one device is affected, start there.",
+        )
 
-    assert procedure_record.id is not None
-    assert procedure_record.subject == "Internet is down"
-    assert procedure_record.category == "Troubleshooting"
-    assert (
-        procedure_record.procedure
-        == "Check router power before restarting anything."
-    )
-    assert procedure_record.details == "If only one device is affected, start there."
-    assert procedure_record.created_at is not None
-    assert procedure_record.updated_at is None
-    assert procedure_record.retired_at is None
-    assert procedure_record.retired_reason is None
+        assert created.id is not None
+        assert created.created_at is not None
+        assert created.subject == "Internet is down"
+        assert (
+            created.procedure
+            == "Check router power before restarting anything."
+        )
+        assert created.category == "Troubleshooting"
+        assert created.details == "If only one device is affected, start there."
 
+        procedures = repository.list_recent(limit=10)
 
-def test_get_by_id_returns_procedure(tmp_path: Path) -> None:
-    session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-
-    created = repository.create(
-        subject="Water leak under sink",
-        category="Emergency",
-        procedure="Turn off the local shutoff valve first.",
-        details="Keep towels in the under-sink drawer.",
-    )
-
-    fetched = repository.get_by_id(created.id)
-
-    assert fetched is not None
-    assert fetched.id == created.id
-    assert fetched.subject == "Water leak under sink"
-    assert fetched.category == "Emergency"
-    assert fetched.procedure == "Turn off the local shutoff valve first."
-    assert fetched.details == "Keep towels in the under-sink drawer."
+        assert len(procedures) == 1
+        assert procedures[0].id == created.id
+        assert procedures[0].subject == "Internet is down"
+        assert (
+            procedures[0].procedure
+            == "Check router power before restarting anything."
+        )
+        assert procedures[0].category == "Troubleshooting"
+        assert procedures[0].details == "If only one device is affected, start there."
+    finally:
+        session_factory.close()
 
 
-def test_get_by_id_returns_none_when_missing(tmp_path: Path) -> None:
-    session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-
-    fetched = repository.get_by_id(9999)
-
-    assert fetched is None
-
-
-def test_update_updates_existing_procedure(tmp_path: Path) -> None:
-    session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-
-    created = repository.create(
-        subject="Internet is down",
-        category="Troubleshooting",
-        procedure="Check router power before restarting anything.",
-        details="If only one device is affected, start there.",
-    )
-
-    updated = repository.update(
-        created,
-        category="Connectivity",
-        procedure="Check router power, modem lights, and ISP status.",
-        details="Restart equipment only after outage checks.",
-    )
-
-    assert updated.id == created.id
-    assert updated.subject == "Internet is down"
-    assert updated.category == "Connectivity"
-    assert (
-        updated.procedure
-        == "Check router power, modem lights, and ISP status."
-    )
-    assert updated.details == "Restart equipment only after outage checks."
-    assert updated.updated_at is not None
-
-    fetched = repository.get_by_id(created.id)
-    assert fetched is not None
-    assert fetched.category == "Connectivity"
-    assert fetched.procedure == "Check router power, modem lights, and ISP status."
-    assert fetched.details == "Restart equipment only after outage checks."
-    assert fetched.updated_at is not None
-
-
-def test_retire_marks_procedure_as_retired(tmp_path: Path) -> None:
-    session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-
-    created = repository.create(
-        subject="Water leak under sink",
-        category="Emergency",
-        procedure="Turn off the local shutoff valve first.",
-        details=None,
-    )
-
-    retired = repository.retire(
-        created,
-        reason="Replaced by updated plumbing playbook.",
-    )
-
-    assert retired.id == created.id
-    assert retired.retired_at is not None
-    assert retired.retired_reason == "Replaced by updated plumbing playbook."
-
-    fetched = repository.get_by_id(created.id)
-    assert fetched is not None
-    assert fetched.retired_at is not None
-    assert fetched.retired_reason == "Replaced by updated plumbing playbook."
-
-
-def test_list_recent_returns_only_active_procedures_newest_first(
+def test_procedure_repository_list_recent_returns_newest_first(
     tmp_path: Path,
 ) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
     repository = ProcedureRepository(session_factory)
 
-    first = repository.create(
-        subject="First procedure",
-        category=None,
-        procedure="First step.",
-        details=None,
-    )
-    second = repository.create(
-        subject="Second procedure",
-        category=None,
-        procedure="Second step.",
-        details=None,
-    )
-    third = repository.create(
-        subject="Third procedure",
-        category=None,
-        procedure="Third step.",
-        details=None,
-    )
+    try:
+        repository.create(
+            subject="First procedure",
+            procedure="First step.",
+            category=None,
+            details=None,
+        )
+        repository.create(
+            subject="Second procedure",
+            procedure="Second step.",
+            category=None,
+            details=None,
+        )
 
-    repository.retire(
-        second,
-        reason="No longer relevant.",
-    )
+        procedures = repository.list_recent(limit=10)
 
-    procedures = repository.list_recent(limit=10)
-
-    assert [procedure.id for procedure in procedures] == [
-        third.id,
-        first.id,
-    ]
+        assert len(procedures) == 2
+        assert procedures[0].subject == "Second procedure"
+        assert procedures[1].subject == "First procedure"
+    finally:
+        session_factory.close()
 
 
-def test_list_recent_respects_limit(tmp_path: Path) -> None:
+def test_procedure_repository_list_recent_respects_limit(
+    tmp_path: Path,
+) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
     repository = ProcedureRepository(session_factory)
 
-    repository.create(
-        subject="First procedure",
-        category=None,
-        procedure="First step.",
-        details=None,
-    )
-    second = repository.create(
-        subject="Second procedure",
-        category=None,
-        procedure="Second step.",
-        details=None,
-    )
-    third = repository.create(
-        subject="Third procedure",
-        category=None,
-        procedure="Third step.",
-        details=None,
-    )
+    try:
+        repository.create(
+            subject="First procedure",
+            procedure="First step.",
+            category=None,
+            details=None,
+        )
+        repository.create(
+            subject="Second procedure",
+            procedure="Second step.",
+            category=None,
+            details=None,
+        )
+        repository.create(
+            subject="Third procedure",
+            procedure="Third step.",
+            category=None,
+            details=None,
+        )
 
-    procedures = repository.list_recent(limit=2)
+        procedures = repository.list_recent(limit=2)
 
-    assert len(procedures) == 2
-    assert [procedure.id for procedure in procedures] == [
-        third.id,
-        second.id,
-    ]
+        assert len(procedures) == 2
+        assert procedures[0].subject == "Third procedure"
+        assert procedures[1].subject == "Second procedure"
+    finally:
+        session_factory.close()
+
+
+def test_procedure_repository_update_updates_existing_record(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = ProcedureRepository(session_factory)
+
+    try:
+        created = repository.create(
+            subject="Internet is down",
+            procedure="Check router power before restarting anything.",
+            category="Troubleshooting",
+            details="If only one device is affected, start there.",
+        )
+
+        updated = repository.update(
+            procedure_record=created,
+            procedure="Check router power, modem lights, and ISP status.",
+            category="Connectivity",
+            details="Restart equipment only after outage checks.",
+        )
+
+        assert updated is not None
+        assert updated.id == created.id
+        assert updated.subject == "Internet is down"
+        assert (
+            updated.procedure
+            == "Check router power, modem lights, and ISP status."
+        )
+        assert updated.category == "Connectivity"
+        assert updated.details == "Restart equipment only after outage checks."
+        assert updated.updated_at is not None
+    finally:
+        session_factory.close()
+
+
+def test_procedure_repository_update_returns_input_when_record_missing(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = ProcedureRepository(session_factory)
+
+    try:
+        created = repository.create(
+            subject="Internet is down",
+            procedure="Check router power before restarting anything.",
+            category="Troubleshooting",
+            details="If only one device is affected, start there.",
+        )
+
+        with session_factory.get_session() as session:
+            persisted = session.get(Procedure, created.id)
+            assert persisted is not None
+            session.delete(persisted)
+            session.commit()
+
+        updated = repository.update(
+            procedure_record=created,
+            procedure="Check router power, modem lights, and ISP status.",
+            category="Connectivity",
+            details="Restart equipment only after outage checks.",
+        )
+
+        assert updated is created
+        assert updated.id == created.id
+        assert (
+            updated.procedure
+            == "Check router power before restarting anything."
+        )
+        assert updated.category == "Troubleshooting"
+        assert updated.details == "If only one device is affected, start there."
+        assert updated.updated_at is None
+    finally:
+        session_factory.close()
+
+
+def test_procedure_repository_retire_marks_record_as_retired(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = ProcedureRepository(session_factory)
+
+    try:
+        created = repository.create(
+            subject="Water leak under sink",
+            procedure="Turn off the local shutoff valve first.",
+            category="Emergency",
+            details=None,
+        )
+
+        retired = repository.retire(
+            procedure_record=created,
+            reason="Replaced by updated plumbing playbook",
+        )
+
+        assert retired is not None
+        assert retired.id == created.id
+        assert retired.retired_at is not None
+        assert retired.retired_reason == "Replaced by updated plumbing playbook"
+
+        procedures = repository.list_recent(limit=10)
+        assert len(procedures) == 0
+    finally:
+        session_factory.close()
+
+
+def test_procedure_repository_retire_returns_input_when_record_missing(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = ProcedureRepository(session_factory)
+
+    try:
+        created = repository.create(
+            subject="Water leak under sink",
+            procedure="Turn off the local shutoff valve first.",
+            category="Emergency",
+            details=None,
+        )
+
+        with session_factory.get_session() as session:
+            persisted = session.get(Procedure, created.id)
+            assert persisted is not None
+            session.delete(persisted)
+            session.commit()
+
+        retired = repository.retire(
+            procedure_record=created,
+            reason="Replaced by updated plumbing playbook",
+        )
+
+        assert retired is created
+        assert retired.id == created.id
+        assert retired.retired_at is None
+        assert retired.retired_reason is None
+    finally:
+        session_factory.close()

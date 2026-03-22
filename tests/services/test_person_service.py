@@ -12,19 +12,22 @@ def test_person_service_register_saves_person(tmp_path: Path) -> None:
     repository = PersonRepository(session_factory)
     service = PersonService(repository)
 
-    person = service.register(
-        name="Sara",
-        is_household_member=True,
-    )
+    try:
+        person = service.register(
+            name="Sara",
+            is_household_member=True,
+        )
 
-    assert person.id is not None
-    assert person.name == "Sara"
-    assert person.is_household_member is True
+        assert person.id is not None
+        assert person.name == "Sara"
+        assert person.is_household_member is True
 
-    people = service.list_recent(limit=10)
-    assert len(people) == 1
-    assert people[0].name == "Sara"
-    assert people[0].is_household_member is True
+        people = service.list_recent(limit=10)
+        assert len(people) == 1
+        assert people[0].name == "Sara"
+        assert people[0].is_household_member is True
+    finally:
+        session_factory.close()
 
 
 def test_person_service_register_strips_name(tmp_path: Path) -> None:
@@ -32,12 +35,15 @@ def test_person_service_register_strips_name(tmp_path: Path) -> None:
     repository = PersonRepository(session_factory)
     service = PersonService(repository)
 
-    person = service.register(
-        name="  Sara  ",
-        is_household_member=True,
-    )
+    try:
+        person = service.register(
+            name="  Sara  ",
+            is_household_member=True,
+        )
 
-    assert person.name == "Sara"
+        assert person.name == "Sara"
+    finally:
+        session_factory.close()
 
 
 def test_person_service_register_rejects_empty_name(tmp_path: Path) -> None:
@@ -45,11 +51,14 @@ def test_person_service_register_rejects_empty_name(tmp_path: Path) -> None:
     repository = PersonRepository(session_factory)
     service = PersonService(repository)
 
-    with pytest.raises(ValueError, match="Person name cannot be empty."):
-        service.register(
-            name="   ",
-            is_household_member=True,
-        )
+    try:
+        with pytest.raises(ValueError, match="Person name cannot be empty."):
+            service.register(
+                name="   ",
+                is_household_member=True,
+            )
+    finally:
+        session_factory.close()
 
 
 def test_person_service_list_recent_returns_newest_first(
@@ -59,20 +68,23 @@ def test_person_service_list_recent_returns_newest_first(
     repository = PersonRepository(session_factory)
     service = PersonService(repository)
 
-    service.register(
-        name="HH",
-        is_household_member=True,
-    )
-    service.register(
-        name="Guest",
-        is_household_member=False,
-    )
+    try:
+        service.register(
+            name="HH",
+            is_household_member=True,
+        )
+        service.register(
+            name="Guest",
+            is_household_member=False,
+        )
 
-    people = service.list_recent(limit=10)
+        people = service.list_recent(limit=10)
 
-    assert len(people) == 2
-    assert people[0].name == "Guest"
-    assert people[1].name == "HH"
+        assert len(people) == 2
+        assert people[0].name == "Guest"
+        assert people[1].name == "HH"
+    finally:
+        session_factory.close()
 
 
 def test_person_service_list_recent_respects_limit(
@@ -82,19 +94,24 @@ def test_person_service_list_recent_respects_limit(
     repository = PersonRepository(session_factory)
     service = PersonService(repository)
 
-    service.register(
-        name="HH",
-        is_household_member=True,
-    )
-    service.register(
-        name="Sara",
-        is_household_member=True,
-    )
-    service.register(
-        name="Guest",
-        is_household_member=False,
-    )
+    try:
+        service.register(
+            name="HH",
+            is_household_member=True,
+        )
+        service.register(
+            name="Sara",
+            is_household_member=True,
+        )
+        service.register(
+            name="Guest",
+            is_household_member=False,
+        )
 
-    people = service.list_recent(limit=2)
+        people = service.list_recent(limit=2)
 
-    assert len(people) == 2
+        assert len(people) == 2
+        assert people[0].name == "Guest"
+        assert people[1].name == "Sara"
+    finally:
+        session_factory.close()

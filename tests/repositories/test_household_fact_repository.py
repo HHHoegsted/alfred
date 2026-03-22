@@ -1,107 +1,253 @@
 from pathlib import Path
 
-from alfred.bootstrap import build_household_fact_service
+from alfred.bootstrap import init_sqlalchemy
+from alfred.models import HouseholdFact
 from alfred.repositories import HouseholdFactRepository
 
 
-def build_household_fact_repository(tmp_path: Path) -> HouseholdFactRepository:
-    service = build_household_fact_service(data_dir=tmp_path)
-    return service.repository
+def test_household_fact_repository_create_and_list_recent(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = HouseholdFactRepository(session_factory)
+
+    try:
+        created = repository.create(
+            subject="Wi-Fi password",
+            value="CorrectHorseBatteryStaple",
+            details="Main household network password.",
+        )
+
+        assert created.id is not None
+        assert created.created_at is not None
+        assert created.subject == "Wi-Fi password"
+        assert created.value == "CorrectHorseBatteryStaple"
+        assert created.details == "Main household network password."
+
+        facts = repository.list_recent(limit=10)
+
+        assert len(facts) == 1
+        assert facts[0].id == created.id
+        assert facts[0].subject == "Wi-Fi password"
+        assert facts[0].value == "CorrectHorseBatteryStaple"
+        assert facts[0].details == "Main household network password."
+    finally:
+        session_factory.close()
 
 
-def test_create_stores_household_fact(tmp_path: Path) -> None:
-    repository = build_household_fact_repository(tmp_path)
+def test_household_fact_repository_get_by_id_returns_record(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = HouseholdFactRepository(session_factory)
 
-    fact = repository.create(
-        subject="Water shutoff valve",
-        value="Under kitchen sink",
-        details="Turn clockwise to close",
-    )
+    try:
+        created = repository.create(
+            subject="Wi-Fi password",
+            value="CorrectHorseBatteryStaple",
+            details="Main household network password.",
+        )
 
-    assert fact.id is not None
-    assert fact.subject == "Water shutoff valve"
-    assert fact.value == "Under kitchen sink"
-    assert fact.details == "Turn clockwise to close"
+        fact = repository.get_by_id(created.id)
 
-
-def test_get_by_id_returns_household_fact(tmp_path: Path) -> None:
-    repository = build_household_fact_repository(tmp_path)
-    created_fact = repository.create(
-        subject="Fuse box",
-        value="Utility room",
-        details="Label inside door",
-    )
-
-    fact = repository.get_by_id(created_fact.id)
-
-    assert fact is not None
-    assert fact.id == created_fact.id
-    assert fact.subject == "Fuse box"
+        assert fact is not None
+        assert fact.id == created.id
+        assert fact.subject == "Wi-Fi password"
+        assert fact.value == "CorrectHorseBatteryStaple"
+        assert fact.details == "Main household network password."
+    finally:
+        session_factory.close()
 
 
-def test_get_by_id_returns_none_for_missing_household_fact(tmp_path: Path) -> None:
-    repository = build_household_fact_repository(tmp_path)
+def test_household_fact_repository_get_by_id_returns_none_for_missing_record(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = HouseholdFactRepository(session_factory)
 
-    fact = repository.get_by_id(999)
+    try:
+        fact = repository.get_by_id(9999)
 
-    assert fact is None
-
-
-def test_update_changes_value_and_details(tmp_path: Path) -> None:
-    repository = build_household_fact_repository(tmp_path)
-    fact = repository.create(
-        subject="Wi-Fi router",
-        value="Office shelf",
-        details="Behind the monitor",
-    )
-
-    updated_fact = repository.update(
-        fact,
-        value="Hall cupboard",
-        details="Moved during cleanup",
-    )
-
-    assert updated_fact.id == fact.id
-    assert updated_fact.subject == "Wi-Fi router"
-    assert updated_fact.value == "Hall cupboard"
-    assert updated_fact.details == "Moved during cleanup"
-    assert updated_fact.updated_at is not None
+        assert fact is None
+    finally:
+        session_factory.close()
 
 
-def test_retire_sets_retired_fields(tmp_path: Path) -> None:
-    repository = build_household_fact_repository(tmp_path)
-    fact = repository.create(
-        subject="Spare key",
-        value="Top drawer",
-        details=None,
-    )
+def test_household_fact_repository_list_recent_returns_newest_first(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = HouseholdFactRepository(session_factory)
 
-    retired_fact = repository.retire(
-        fact,
-        reason="No longer stored there",
-    )
+    try:
+        repository.create(
+            subject="First fact",
+            value="First value",
+            details=None,
+        )
+        repository.create(
+            subject="Second fact",
+            value="Second value",
+            details=None,
+        )
 
-    assert retired_fact.id == fact.id
-    assert retired_fact.retired_at is not None
-    assert retired_fact.retired_reason == "No longer stored there"
+        facts = repository.list_recent(limit=10)
+
+        assert len(facts) == 2
+        assert facts[0].subject == "Second fact"
+        assert facts[1].subject == "First fact"
+    finally:
+        session_factory.close()
 
 
-def test_list_recent_returns_non_retired_facts_newest_first(tmp_path: Path) -> None:
-    repository = build_household_fact_repository(tmp_path)
+def test_household_fact_repository_list_recent_respects_limit(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = HouseholdFactRepository(session_factory)
 
-    first_fact = repository.create(
-        subject="Old fact",
-        value="Old value",
-        details=None,
-    )
-    second_fact = repository.create(
-        subject="New fact",
-        value="New value",
-        details=None,
-    )
+    try:
+        repository.create(
+            subject="First fact",
+            value="First value",
+            details=None,
+        )
+        repository.create(
+            subject="Second fact",
+            value="Second value",
+            details=None,
+        )
+        repository.create(
+            subject="Third fact",
+            value="Third value",
+            details=None,
+        )
 
-    repository.retire(first_fact, reason="Outdated")
+        facts = repository.list_recent(limit=2)
 
-    facts = repository.list_recent()
+        assert len(facts) == 2
+        assert facts[0].subject == "Third fact"
+        assert facts[1].subject == "Second fact"
+    finally:
+        session_factory.close()
 
-    assert [fact.id for fact in facts] == [second_fact.id]
+
+def test_household_fact_repository_update_updates_existing_record(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = HouseholdFactRepository(session_factory)
+
+    try:
+        created = repository.create(
+            subject="Wi-Fi password",
+            value="CorrectHorseBatteryStaple",
+            details="Main household network password.",
+        )
+
+        updated = repository.update(
+            fact=created,
+            value="HorseBatteryStapleCorrect",
+            details="Updated after router reset.",
+        )
+
+        assert updated is not None
+        assert updated.id == created.id
+        assert updated.subject == "Wi-Fi password"
+        assert updated.value == "HorseBatteryStapleCorrect"
+        assert updated.details == "Updated after router reset."
+        assert updated.updated_at is not None
+    finally:
+        session_factory.close()
+
+
+def test_household_fact_repository_update_returns_input_when_record_missing(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = HouseholdFactRepository(session_factory)
+
+    try:
+        created = repository.create(
+            subject="Wi-Fi password",
+            value="CorrectHorseBatteryStaple",
+            details="Main household network password.",
+        )
+
+        with session_factory.get_session() as session:
+            persisted = session.get(HouseholdFact, created.id)
+            assert persisted is not None
+            session.delete(persisted)
+            session.commit()
+
+        updated = repository.update(
+            fact=created,
+            value="HorseBatteryStapleCorrect",
+            details="Updated after router reset.",
+        )
+
+        assert updated is created
+        assert updated.id == created.id
+        assert updated.value == "CorrectHorseBatteryStaple"
+        assert updated.details == "Main household network password."
+    finally:
+        session_factory.close()
+
+
+def test_household_fact_repository_retire_marks_record_as_retired(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = HouseholdFactRepository(session_factory)
+
+    try:
+        created = repository.create(
+            subject="Alarm code",
+            value="1234",
+            details=None,
+        )
+
+        retired = repository.retire(
+            fact=created,
+            reason="Replaced by new alarm panel",
+        )
+
+        assert retired is not None
+        assert retired.id == created.id
+        assert retired.retired_at is not None
+        assert retired.retired_reason == "Replaced by new alarm panel"
+
+        facts = repository.list_recent(limit=10)
+        assert len(facts) == 0
+    finally:
+        session_factory.close()
+
+
+def test_household_fact_repository_retire_returns_input_when_record_missing(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = HouseholdFactRepository(session_factory)
+
+    try:
+        created = repository.create(
+            subject="Alarm code",
+            value="1234",
+            details=None,
+        )
+
+        with session_factory.get_session() as session:
+            persisted = session.get(HouseholdFact, created.id)
+            assert persisted is not None
+            session.delete(persisted)
+            session.commit()
+
+        retired = repository.retire(
+            fact=created,
+            reason="Replaced by new alarm panel",
+        )
+
+        assert retired is created
+        assert retired.id == created.id
+        assert retired.retired_at is None
+        assert retired.retired_reason is None
+    finally:
+        session_factory.close()

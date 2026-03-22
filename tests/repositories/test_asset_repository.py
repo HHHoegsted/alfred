@@ -59,7 +59,9 @@ def test_get_by_id_returns_none_for_missing_asset(tmp_path: Path) -> None:
     assert asset is None
 
 
-def test_list_recent_returns_non_retired_assets_newest_first(tmp_path: Path) -> None:
+def test_list_recent_returns_non_retired_assets_newest_first(
+    tmp_path: Path,
+) -> None:
     repository = build_asset_repository(tmp_path)
 
     first_asset = repository.create(
@@ -81,8 +83,6 @@ def test_list_recent_returns_non_retired_assets_newest_first(tmp_path: Path) -> 
         details=None,
     )
 
-    first_asset.retired_at = first_asset.created_at
-    repository.session_factory.get_session().__enter__  # keep linters from assuming unused? no, remove
     with repository.session_factory.get_session() as session:
         persisted_first_asset = session.get(type(first_asset), first_asset.id)
         assert persisted_first_asset is not None
@@ -93,3 +93,43 @@ def test_list_recent_returns_non_retired_assets_newest_first(tmp_path: Path) -> 
     assets = repository.list_recent()
 
     assert [asset.id for asset in assets] == [second_asset.id]
+
+
+def test_list_recent_respects_limit(tmp_path: Path) -> None:
+    repository = build_asset_repository(tmp_path)
+
+    repository.create(
+        name="First asset",
+        category="Kitchen",
+        location="Shelf A",
+        brand=None,
+        model=None,
+        serial_number=None,
+        details=None,
+    )
+    repository.create(
+        name="Second asset",
+        category="Kitchen",
+        location="Shelf B",
+        brand=None,
+        model=None,
+        serial_number=None,
+        details=None,
+    )
+    repository.create(
+        name="Third asset",
+        category="Kitchen",
+        location="Shelf C",
+        brand=None,
+        model=None,
+        serial_number=None,
+        details=None,
+    )
+
+    assets = repository.list_recent(limit=2)
+
+    assert len(assets) == 2
+    assert [asset.name for asset in assets] == [
+        "Third asset",
+        "Second asset",
+    ]
