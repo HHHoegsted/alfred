@@ -3,6 +3,7 @@ from pathlib import Path
 from alfred.db import SQLAlchemySessionFactory
 from alfred.repositories import (
     AssetRepository,
+    CareInstructionRepository,
     DecisionRecordRepository,
     HouseholdFactRepository,
     NoteRepository,
@@ -11,6 +12,7 @@ from alfred.repositories import (
 )
 from alfred.services import (
     AssetService,
+    CareInstructionService,
     DecisionRecordService,
     HouseholdFactService,
     NoteService,
@@ -75,3 +77,11 @@ def build_purchase_service(data_dir: Path | None = None) -> PurchaseService:
     session_factory = init_sqlalchemy(data_dir)
     repository = PurchaseRepository(session_factory)
     return PurchaseService(repository)
+
+
+def build_care_instruction_service(
+    data_dir: Path | None = None,
+) -> CareInstructionService:
+    session_factory = init_sqlalchemy(data_dir)
+    repository = CareInstructionRepository(session_factory)
+    return CareInstructionService(repository)
