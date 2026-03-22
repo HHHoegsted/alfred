@@ -36,7 +36,11 @@ def display_assets(assets: list[Asset]) -> None:
 def record(
     name: str = typer.Argument(..., help="The asset name."),
     category: str | None = typer.Option(None, "--category", help="The asset category."),
-    location: str | None = typer.Option(None, "--location", help="Where the asset is located."),
+    location: str | None = typer.Option(
+        None,
+        "--location",
+        help="Where the asset is located.",
+    ),
     brand: str | None = typer.Option(None, "--brand", help="The asset brand."),
     model: str | None = typer.Option(None, "--model", help="The asset model."),
     serial_number: str | None = typer.Option(
@@ -44,7 +48,11 @@ def record(
         "--serial-number",
         help="The asset serial number.",
     ),
-    details: str | None = typer.Option(None, "--details", help="Additional asset details."),
+    details: str | None = typer.Option(
+        None,
+        "--details",
+        help="Additional asset details.",
+    ),
 ) -> None:
     service = bootstrap.build_asset_service()
 
@@ -61,6 +69,8 @@ def record(
     except ValueError as exc:
         typer.echo(str(exc))
         raise typer.Exit(code=1) from exc
+    finally:
+        service.repository.session_factory.close()
 
     typer.echo("Asset recorded.")
     typer.echo(f"[{asset.id}] {asset.name}")
@@ -77,7 +87,11 @@ def list_recent(
     ),
 ) -> None:
     service = bootstrap.build_asset_service()
-    assets = service.list_recent(limit=limit)
+
+    try:
+        assets = service.list_recent(limit=limit)
+    finally:
+        service.repository.session_factory.close()
 
     if not assets:
         typer.echo("No assets found.")

@@ -41,6 +41,8 @@ def add_person(
     except ValueError as exc:
         typer.echo(str(exc))
         raise typer.Exit(code=1) from exc
+    finally:
+        service.repository.session_factory.close()
 
     typer.echo("Person registered.")
     typer.echo(f"[{person.id}] {person.name}")
@@ -57,7 +59,11 @@ def list_people(
     ),
 ) -> None:
     service = bootstrap.build_person_service()
-    people = service.list_recent(limit=limit)
+
+    try:
+        people = service.list_recent(limit=limit)
+    finally:
+        service.repository.session_factory.close()
 
     if not people:
         typer.echo("No people found.")

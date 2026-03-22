@@ -40,6 +40,8 @@ def add(
     except ValueError as exc:
         typer.echo(str(exc))
         raise typer.Exit(code=1) from exc
+    finally:
+        service.repository.session_factory.close()
 
     typer.echo("Household fact recorded.")
     typer.echo(f"[{fact.id}] {fact.subject}")
@@ -47,7 +49,10 @@ def add(
 
 @fact_app.command("update")
 def update(
-    fact_id: int = typer.Argument(..., help="The ID of the household fact to update."),
+    fact_id: int = typer.Argument(
+        ...,
+        help="The ID of the household fact to update.",
+    ),
     value: str = typer.Option(..., "--value", help="The updated fact value."),
     details: str | None = typer.Option(
         None,
@@ -66,6 +71,8 @@ def update(
     except ValueError as exc:
         typer.echo(str(exc))
         raise typer.Exit(code=1) from exc
+    finally:
+        service.repository.session_factory.close()
 
     typer.echo("Household fact updated.")
     typer.echo(f"[{fact.id}] {fact.subject}")
@@ -73,7 +80,10 @@ def update(
 
 @fact_app.command("retire")
 def retire(
-    fact_id: int = typer.Argument(..., help="The ID of the household fact to retire."),
+    fact_id: int = typer.Argument(
+        ...,
+        help="The ID of the household fact to retire.",
+    ),
     reason: str | None = typer.Option(
         None,
         "--reason",
@@ -90,6 +100,8 @@ def retire(
     except ValueError as exc:
         typer.echo(str(exc))
         raise typer.Exit(code=1) from exc
+    finally:
+        service.repository.session_factory.close()
 
     typer.echo("Household fact retired.")
     typer.echo(f"[{fact.id}] {fact.subject}")
@@ -106,7 +118,11 @@ def list_facts(
     ),
 ) -> None:
     service = bootstrap.build_household_fact_service()
-    facts: list[HouseholdFact] = service.list_recent(limit=limit)
+
+    try:
+        facts: list[HouseholdFact] = service.list_recent(limit=limit)
+    finally:
+        service.repository.session_factory.close()
 
     if not facts:
         typer.echo("No household facts found.")

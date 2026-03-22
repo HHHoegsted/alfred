@@ -19,7 +19,8 @@ def test_init_sqlalchemy_creates_decision_records_table(tmp_path: Path) -> None:
         db_path = tmp_path / "alfred.db"
         assert db_path.exists()
 
-        with sqlite3.connect(db_path) as connection:
+        connection = sqlite3.connect(db_path)
+        try:
             row = connection.execute(
                 """
                 SELECT name
@@ -27,6 +28,8 @@ def test_init_sqlalchemy_creates_decision_records_table(tmp_path: Path) -> None:
                 WHERE type = 'table' AND name = 'decision_records'
                 """
             ).fetchone()
+        finally:
+            connection.close()
 
         assert row is not None
         assert row[0] == "decision_records"
@@ -43,7 +46,8 @@ def test_init_sqlalchemy_creates_care_instructions_table(tmp_path: Path) -> None
         db_path = tmp_path / "alfred.db"
         assert db_path.exists()
 
-        with sqlite3.connect(db_path) as connection:
+        connection = sqlite3.connect(db_path)
+        try:
             row = connection.execute(
                 """
                 SELECT name
@@ -51,6 +55,8 @@ def test_init_sqlalchemy_creates_care_instructions_table(tmp_path: Path) -> None
                 WHERE type = 'table' AND name = 'care_instructions'
                 """
             ).fetchone()
+        finally:
+            connection.close()
 
         assert row is not None
         assert row[0] == "care_instructions"
@@ -67,7 +73,8 @@ def test_init_sqlalchemy_creates_procedures_table(tmp_path: Path) -> None:
         db_path = tmp_path / "alfred.db"
         assert db_path.exists()
 
-        with sqlite3.connect(db_path) as connection:
+        connection = sqlite3.connect(db_path)
+        try:
             row = connection.execute(
                 """
                 SELECT name
@@ -75,6 +82,8 @@ def test_init_sqlalchemy_creates_procedures_table(tmp_path: Path) -> None:
                 WHERE type = 'table' AND name = 'procedures'
                 """
             ).fetchone()
+        finally:
+            connection.close()
 
         assert row is not None
         assert row[0] == "procedures"
@@ -92,16 +101,20 @@ def test_build_decision_record_service_returns_working_service(
             summary="Keep Alfred local-first",
             reason="It matches the vision and keeps household knowledge portable.",
         )
+        records = service.list_recent()
 
-        assert created.id is not None
-        assert created.created_at is not None
-        assert created.summary == "Keep Alfred local-first"
+        created_id = created.id
+        created_at = created.created_at
+        created_summary = created.summary
+        created_reason = created.reason
+
+        assert created_id is not None
+        assert created_at is not None
+        assert created_summary == "Keep Alfred local-first"
         assert (
-            created.reason
+            created_reason
             == "It matches the vision and keeps household knowledge portable."
         )
-
-        records = service.list_recent()
 
         assert len(records) == 1
         assert records[0].summary == "Keep Alfred local-first"
@@ -119,9 +132,13 @@ def test_build_person_service_returns_working_service(tmp_path: Path) -> None:
         )
         people = service.list_recent()
 
-        assert created.id is not None
-        assert created.name == "Sara"
-        assert created.is_household_member is True
+        created_id = created.id
+        created_name = created.name
+        created_is_household_member = created.is_household_member
+
+        assert created_id is not None
+        assert created_name == "Sara"
+        assert created_is_household_member is True
 
         assert len(people) == 1
         assert people[0].name == "Sara"
@@ -142,15 +159,21 @@ def test_build_care_instruction_service_returns_working_service(
             category="Cleaning",
             details="Air dry flat to avoid stretching.",
         )
-
-        assert created.id is not None
-        assert created.created_at is not None
-        assert created.subject == "Wool blanket"
-        assert created.instruction == "Wash on wool cycle with cold water."
-        assert created.category == "Cleaning"
-        assert created.details == "Air dry flat to avoid stretching."
-
         care_instructions = service.list_recent()
+
+        created_id = created.id
+        created_at = created.created_at
+        created_subject = created.subject
+        created_instruction = created.instruction
+        created_category = created.category
+        created_details = created.details
+
+        assert created_id is not None
+        assert created_at is not None
+        assert created_subject == "Wool blanket"
+        assert created_instruction == "Wash on wool cycle with cold water."
+        assert created_category == "Cleaning"
+        assert created_details == "Air dry flat to avoid stretching."
 
         assert len(care_instructions) == 1
         assert care_instructions[0].subject == "Wool blanket"
@@ -174,18 +197,21 @@ def test_build_procedure_service_returns_working_service(
             category="Troubleshooting",
             details="If only one device is affected, start there.",
         )
-
-        assert created.id is not None
-        assert created.created_at is not None
-        assert created.subject == "Internet is down"
-        assert (
-            created.procedure
-            == "Check router power before restarting anything."
-        )
-        assert created.category == "Troubleshooting"
-        assert created.details == "If only one device is affected, start there."
-
         procedures = service.list_recent()
+
+        created_id = created.id
+        created_at = created.created_at
+        created_subject = created.subject
+        created_procedure = created.procedure
+        created_category = created.category
+        created_details = created.details
+
+        assert created_id is not None
+        assert created_at is not None
+        assert created_subject == "Internet is down"
+        assert created_procedure == "Check router power before restarting anything."
+        assert created_category == "Troubleshooting"
+        assert created_details == "If only one device is affected, start there."
 
         assert len(procedures) == 1
         assert procedures[0].subject == "Internet is down"

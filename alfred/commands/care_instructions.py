@@ -26,8 +26,16 @@ def display_care_instructions(care_instructions: list[CareInstruction]) -> None:
 
 @care_instruction_app.command("add")
 def add(
-    subject: str = typer.Option(..., "--subject", help="What the care instruction is about."),
-    instruction: str = typer.Option(..., "--instruction", help="The care instruction itself."),
+    subject: str = typer.Option(
+        ...,
+        "--subject",
+        help="What the care instruction is about.",
+    ),
+    instruction: str = typer.Option(
+        ...,
+        "--instruction",
+        help="The care instruction itself.",
+    ),
     category: str | None = typer.Option(
         None,
         "--category",
@@ -51,6 +59,8 @@ def add(
     except ValueError as exc:
         typer.echo(str(exc))
         raise typer.Exit(code=1) from exc
+    finally:
+        service.repository.session_factory.close()
 
     typer.echo("Care instruction recorded.")
     typer.echo(f"[{care_instruction.id}] {care_instruction.subject}")
@@ -62,7 +72,11 @@ def update(
         ...,
         help="The ID of the care instruction to update.",
     ),
-    instruction: str = typer.Option(..., "--instruction", help="The updated care instruction."),
+    instruction: str = typer.Option(
+        ...,
+        "--instruction",
+        help="The updated care instruction.",
+    ),
     category: str | None = typer.Option(
         None,
         "--category",
@@ -86,6 +100,8 @@ def update(
     except ValueError as exc:
         typer.echo(str(exc))
         raise typer.Exit(code=1) from exc
+    finally:
+        service.repository.session_factory.close()
 
     typer.echo("Care instruction updated.")
     typer.echo(f"[{care_instruction.id}] {care_instruction.subject}")
@@ -113,6 +129,8 @@ def retire(
     except ValueError as exc:
         typer.echo(str(exc))
         raise typer.Exit(code=1) from exc
+    finally:
+        service.repository.session_factory.close()
 
     typer.echo("Care instruction retired.")
     typer.echo(f"[{care_instruction.id}] {care_instruction.subject}")
@@ -129,7 +147,11 @@ def list_care_instructions(
     ),
 ) -> None:
     service = bootstrap.build_care_instruction_service()
-    care_instructions: list[CareInstruction] = service.list_recent(limit=limit)
+
+    try:
+        care_instructions: list[CareInstruction] = service.list_recent(limit=limit)
+    finally:
+        service.repository.session_factory.close()
 
     if not care_instructions:
         typer.echo("No care instructions found.")

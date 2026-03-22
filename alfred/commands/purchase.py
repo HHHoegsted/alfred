@@ -1,5 +1,6 @@
-import typer
 from datetime import datetime
+
+import typer
 
 import alfred.bootstrap as bootstrap
 from alfred.common import format_timestamp
@@ -41,7 +42,11 @@ def display_purchases(purchases: list[Purchase]) -> None:
 @purchase_app.command("record")
 def record_purchase(
     item_name: str = typer.Argument(..., help="The purchased item name."),
-    vendor: str | None = typer.Option(None, "--vendor", help="Where the item was bought."),
+    vendor: str | None = typer.Option(
+        None,
+        "--vendor",
+        help="Where the item was bought.",
+    ),
     purchase_date: str | None = typer.Option(
         None,
         "--purchase-date",
@@ -100,6 +105,8 @@ def record_purchase(
     except ValueError as exc:
         typer.echo(str(exc))
         raise typer.Exit(code=1) from exc
+    finally:
+        service.repository.session_factory.close()
 
     typer.echo("Purchase recorded.")
     typer.echo(f"[{purchase.id}] {purchase.item_name}")
@@ -116,7 +123,11 @@ def list_purchases(
     ),
 ) -> None:
     service = bootstrap.build_purchase_service()
-    purchases = service.list_recent(limit=limit)
+
+    try:
+        purchases = service.list_recent(limit=limit)
+    finally:
+        service.repository.session_factory.close()
 
     if not purchases:
         typer.echo("No purchases found.")

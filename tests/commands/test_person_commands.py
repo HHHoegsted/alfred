@@ -37,11 +37,14 @@ def test_person_add_registers_household_member(monkeypatch, tmp_path: Path) -> N
     assert "[1] Sara" in result.stdout
 
     service = original_build_person_service(data_dir=tmp_path)
-    people = service.list_recent(limit=10)
+    try:
+        people = service.list_recent(limit=10)
 
-    assert len(people) == 1
-    assert people[0].name == "Sara"
-    assert people[0].is_household_member is True
+        assert len(people) == 1
+        assert people[0].name == "Sara"
+        assert people[0].is_household_member is True
+    finally:
+        service.repository.session_factory.close()
 
 
 def test_person_add_rejects_empty_name() -> None:
@@ -75,22 +78,25 @@ def test_person_list_displays_people_and_household_status(
     )
 
     service = original_build_person_service(data_dir=tmp_path)
-    service.register(name="HH", is_household_member=True)
-    service.register(name="Guest", is_household_member=False)
+    try:
+        service.register(name="HH", is_household_member=True)
+        service.register(name="Guest", is_household_member=False)
 
-    result = runner.invoke(
-        cli.app,
-        [
-            "person",
-            "list",
-        ],
-    )
+        result = runner.invoke(
+            cli.app,
+            [
+                "person",
+                "list",
+            ],
+        )
 
-    assert result.exit_code == 0
-    assert "HH" in result.stdout
-    assert "Guest" in result.stdout
-    assert "household member" in result.stdout
-    assert "known person" in result.stdout
+        assert result.exit_code == 0
+        assert "HH" in result.stdout
+        assert "Guest" in result.stdout
+        assert "household member" in result.stdout
+        assert "known person" in result.stdout
+    finally:
+        service.repository.session_factory.close()
 
 
 def test_person_list_shows_no_people_message_when_empty(
@@ -130,11 +136,14 @@ def test_person_list_accepts_short_limit_alias(
     )
 
     service = original_build_person_service(data_dir=tmp_path)
-    service.register(name="First", is_household_member=False)
-    service.register(name="Second", is_household_member=True)
+    try:
+        service.register(name="First", is_household_member=False)
+        service.register(name="Second", is_household_member=True)
 
-    result = runner.invoke(cli.app, ["person", "list", "-n", "1"])
+        result = runner.invoke(cli.app, ["person", "list", "-n", "1"])
 
-    assert result.exit_code == 0
-    assert "Second" in result.stdout
-    assert "First" not in result.stdout
+        assert result.exit_code == 0
+        assert "Second" in result.stdout
+        assert "First" not in result.stdout
+    finally:
+        service.repository.session_factory.close()
