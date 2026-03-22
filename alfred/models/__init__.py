@@ -4,6 +4,7 @@ from .decision_record import DecisionRecord
 from .household_fact import HouseholdFact
 from .note import Note
 from .person import Person
+from .procedure import Procedure
 from .purchase import Purchase
 
 __all__ = [
@@ -13,5 +14,6 @@ __all__ = [
     "HouseholdFact",
     "Note",
     "Person",
+    "Procedure",
     "Purchase",
 ]

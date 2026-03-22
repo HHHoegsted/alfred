@@ -5,6 +5,7 @@ from alfred.bootstrap import (
     build_care_instruction_service,
     build_decision_record_service,
     build_person_service,
+    build_procedure_service,
     init_sqlalchemy,
 )
 
@@ -49,6 +50,27 @@ def test_init_sqlalchemy_creates_care_instructions_table(tmp_path: Path) -> None
 
     assert row is not None
     assert row[0] == "care_instructions"
+
+
+def test_init_sqlalchemy_creates_procedures_table(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+
+    assert session_factory is not None
+
+    db_path = tmp_path / "alfred.db"
+    assert db_path.exists()
+
+    with sqlite3.connect(db_path) as connection:
+        row = connection.execute(
+            """
+            SELECT name
+            FROM sqlite_master
+            WHERE type = 'table' AND name = 'procedures'
+            """
+        ).fetchone()
+
+    assert row is not None
+    assert row[0] == "procedures"
 
 
 def test_build_decision_record_service_returns_working_service(
@@ -119,4 +141,36 @@ def test_build_care_instruction_service_returns_working_service(
     assert (
         care_instructions[0].instruction
         == "Wash on wool cycle with cold water."
+    )
+
+
+def test_build_procedure_service_returns_working_service(
+    tmp_path: Path,
+) -> None:
+    service = build_procedure_service(data_dir=tmp_path)
+
+    created = service.record(
+        subject="Internet is down",
+        procedure="Check router power before restarting anything.",
+        category="Troubleshooting",
+        details="If only one device is affected, start there.",
+    )
+
+    assert created.id is not None
+    assert created.created_at is not None
+    assert created.subject == "Internet is down"
+    assert (
+        created.procedure
+        == "Check router power before restarting anything."
+    )
+    assert created.category == "Troubleshooting"
+    assert created.details == "If only one device is affected, start there."
+
+    procedures = service.list_recent()
+
+    assert len(procedures) == 1
+    assert procedures[0].subject == "Internet is down"
+    assert (
+        procedures[0].procedure
+        == "Check router power before restarting anything."
     )

@@ -8,6 +8,7 @@ from alfred.repositories import (
     HouseholdFactRepository,
     NoteRepository,
     PersonRepository,
+    ProcedureRepository,
     PurchaseRepository,
 )
 from alfred.services import (
@@ -17,6 +18,7 @@ from alfred.services import (
     HouseholdFactService,
     NoteService,
     PersonService,
+    ProcedureService,
     PurchaseService,
 )
 
@@ -85,3 +87,11 @@ def build_care_instruction_service(
     session_factory = init_sqlalchemy(data_dir)
     repository = CareInstructionRepository(session_factory)
     return CareInstructionService(repository)
+
+
+def build_procedure_service(
+    data_dir: Path | None = None,
+) -> ProcedureService:
+    session_factory = init_sqlalchemy(data_dir)
+    repository = ProcedureRepository(session_factory)
+    return ProcedureService(repository)

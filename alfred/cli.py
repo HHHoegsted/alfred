@@ -7,6 +7,7 @@ from alfred.commands.fact import fact_app
 from alfred.commands.help_memory import help_memory
 from alfred.commands.notes import notes_app
 from alfred.commands.person_context import person_app
+from alfred.commands.procedures import procedure_app
 from alfred.commands.purchase import purchase_app
 
 
@@ -21,6 +22,7 @@ app.add_typer(decision_app, name="decision")
 app.add_typer(fact_app, name="fact")
 app.add_typer(notes_app, name="note")
 app.add_typer(person_app, name="person")
+app.add_typer(procedure_app, name="procedure")
 app.add_typer(purchase_app, name="purchase")
 app.command("help-memory")(help_memory)
 
