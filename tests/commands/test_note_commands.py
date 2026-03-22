@@ -46,6 +46,40 @@ def test_note_capture_rejects_empty_note() -> None:
     assert "Note cannot be empty." in result.stdout
 
 
+def test_note_capture_shows_service_validation_error(monkeypatch) -> None:
+    class DummySessionFactory:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    class DummyRepository:
+        def __init__(self) -> None:
+            self.session_factory = DummySessionFactory()
+
+    class DummyService:
+        def __init__(self) -> None:
+            self.repository = DummyRepository()
+
+        def capture(self, text: str):
+            raise ValueError("Note cannot be empty.")
+
+    service = DummyService()
+
+    monkeypatch.setattr(
+        note_commands.bootstrap,
+        "build_note_service",
+        lambda: service,
+    )
+
+    result = runner.invoke(cli.app, ["note", "capture", "Remember the milk"])
+
+    assert result.exit_code == 1
+    assert "Note cannot be empty." in result.stdout
+    assert service.repository.session_factory.closed is True
+
+
 def test_note_list_shows_no_notes_message_when_database_is_empty(
     tmp_path: Path, monkeypatch
 ) -> None:
