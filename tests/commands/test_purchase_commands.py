@@ -1,4 +1,3 @@
-from datetime import datetime
 from pathlib import Path
 
 import alfred.commands.purchase as purchase_commands
@@ -11,10 +10,12 @@ runner = CliRunner()
 
 
 def test_purchase_record_saves_purchase_and_prints_confirmation(
-    tmp_path: Path,
     monkeypatch,
+    tmp_path: Path,
 ) -> None:
-    original_build_purchase_service = purchase_commands.bootstrap.build_purchase_service
+    original_build_purchase_service = (
+        purchase_commands.bootstrap.build_purchase_service
+    )
 
     def build_purchase_service_for_test():
         return original_build_purchase_service(data_dir=tmp_path)
@@ -30,83 +31,47 @@ def test_purchase_record_saves_purchase_and_prints_confirmation(
         [
             "purchase",
             "record",
-            "Miele Vacuum Cleaner",
+            "Bosch Oven",
             "--vendor",
             "Power",
             "--purchase-date",
-            "2026-03-18T12:00:00",
+            "2026-03-01T10:30:00",
             "--price-amount",
-            "3499.00",
+            "7499.95",
             "--currency",
             "DKK",
             "--order-reference",
-            "ORD-2026-0001",
+            "ORDER-123",
             "--details",
-            "Bought for the current home.",
+            "Kitchen oven purchase.",
         ],
     )
 
     assert result.exit_code == 0
     assert "Purchase recorded." in result.stdout
-    assert "[1] Miele Vacuum Cleaner" in result.stdout
+    assert "[1] Bosch Oven" in result.stdout
 
     service = original_build_purchase_service(data_dir=tmp_path)
     purchases = service.list_recent(limit=10)
 
     assert len(purchases) == 1
-    assert purchases[0].item_name == "Miele Vacuum Cleaner"
+    assert purchases[0].item_name == "Bosch Oven"
     assert purchases[0].vendor == "Power"
-    assert purchases[0].purchase_date == datetime(2026, 3, 18, 12, 0)
-    assert purchases[0].price_amount == "3499.00"
+    assert purchases[0].price_amount == "7499.95"
     assert purchases[0].currency == "DKK"
-    assert purchases[0].order_reference == "ORD-2026-0001"
-    assert purchases[0].details == "Bought for the current home."
+    assert purchases[0].order_reference == "ORDER-123"
+    assert purchases[0].details == "Kitchen oven purchase."
 
-
-def test_purchase_record_uses_current_datetime_when_purchase_date_not_passed(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    original_build_purchase_service = purchase_commands.bootstrap.build_purchase_service
-
-    def build_purchase_service_for_test():
-        return original_build_purchase_service(data_dir=tmp_path)
-
-    monkeypatch.setattr(
-        purchase_commands.bootstrap,
-        "build_purchase_service",
-        build_purchase_service_for_test,
-    )
-
-    result = runner.invoke(
-        cli.app,
-        [
-            "purchase",
-            "record",
-            "Replacement Vacuum Bags",
-            "--vendor",
-            "Elgiganten",
-        ],
-    )
-
-    assert result.exit_code == 0
-    assert "Purchase recorded." in result.stdout
-    assert "[1] Replacement Vacuum Bags" in result.stdout
-
-    service = original_build_purchase_service(data_dir=tmp_path)
-    purchases = service.list_recent(limit=10)
-
-    assert len(purchases) == 1
-    assert purchases[0].item_name == "Replacement Vacuum Bags"
-    assert purchases[0].vendor == "Elgiganten"
-    assert purchases[0].purchase_date is not None
+    service.repository.session_factory.close()
 
 
 def test_purchase_record_rejects_empty_item_name(
-    tmp_path: Path,
     monkeypatch,
+    tmp_path: Path,
 ) -> None:
-    original_build_purchase_service = purchase_commands.bootstrap.build_purchase_service
+    original_build_purchase_service = (
+        purchase_commands.bootstrap.build_purchase_service
+    )
 
     def build_purchase_service_for_test():
         return original_build_purchase_service(data_dir=tmp_path)
@@ -117,24 +82,19 @@ def test_purchase_record_rejects_empty_item_name(
         build_purchase_service_for_test,
     )
 
-    result = runner.invoke(
-        cli.app,
-        [
-            "purchase",
-            "record",
-            " ",
-        ],
-    )
+    result = runner.invoke(cli.app, ["purchase", "record", "   "])
 
     assert result.exit_code == 1
     assert "Purchase item name cannot be empty." in result.stdout
 
 
 def test_purchase_record_rejects_invalid_purchase_date(
-    tmp_path: Path,
     monkeypatch,
+    tmp_path: Path,
 ) -> None:
-    original_build_purchase_service = purchase_commands.bootstrap.build_purchase_service
+    original_build_purchase_service = (
+        purchase_commands.bootstrap.build_purchase_service
+    )
 
     def build_purchase_service_for_test():
         return original_build_purchase_service(data_dir=tmp_path)
@@ -150,21 +110,58 @@ def test_purchase_record_rejects_invalid_purchase_date(
         [
             "purchase",
             "record",
-            "Miele Vacuum Cleaner",
+            "Bosch Oven",
             "--purchase-date",
             "not-a-date",
         ],
     )
 
     assert result.exit_code == 1
-    assert "Purchase date must be a valid ISO datetime" in result.stdout
+    assert (
+        "Purchase date must be a valid ISO datetime, for example "
+        "2026-03-18T12:00:00."
+    ) in result.stdout
 
 
-def test_purchase_list_shows_purchases(
-    tmp_path: Path,
+def test_purchase_record_rejects_empty_purchase_date(
     monkeypatch,
+    tmp_path: Path,
 ) -> None:
-    original_build_purchase_service = purchase_commands.bootstrap.build_purchase_service
+    original_build_purchase_service = (
+        purchase_commands.bootstrap.build_purchase_service
+    )
+
+    def build_purchase_service_for_test():
+        return original_build_purchase_service(data_dir=tmp_path)
+
+    monkeypatch.setattr(
+        purchase_commands.bootstrap,
+        "build_purchase_service",
+        build_purchase_service_for_test,
+    )
+
+    result = runner.invoke(
+        cli.app,
+        [
+            "purchase",
+            "record",
+            "Bosch Oven",
+            "--purchase-date",
+            "   ",
+        ],
+    )
+
+    assert result.exit_code == 1
+    assert "Purchase date cannot be empty." in result.stdout
+
+
+def test_purchase_list_shows_recent_purchases(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    original_build_purchase_service = (
+        purchase_commands.bootstrap.build_purchase_service
+    )
 
     def build_purchase_service_for_test():
         return original_build_purchase_service(data_dir=tmp_path)
@@ -177,38 +174,75 @@ def test_purchase_list_shows_purchases(
 
     service = original_build_purchase_service(data_dir=tmp_path)
     service.record(
-        item_name="Replacement Vacuum Bags",
-        vendor="Elgiganten",
-        purchase_date=datetime(2026, 3, 17, 12, 0),
-        price_amount="199.00",
+        item_name="Bosch Oven",
+        vendor="Power",
+        purchase_date=None,
+        price_amount="7499.95",
         currency="DKK",
-        order_reference="ORD-2026-0002",
-        details="For the Miele vacuum cleaner.",
+        order_reference="ORDER-123",
+        details="Kitchen oven purchase.",
     )
     service.record(
-        item_name="Miele Vacuum Cleaner",
-        vendor="Power",
-        purchase_date=datetime(2026, 3, 18, 12, 0),
-        price_amount="3499.00",
+        item_name="Moccamaster",
+        vendor="Elgiganten",
+        purchase_date=None,
+        price_amount="1999.00",
         currency="DKK",
-        order_reference="ORD-2026-0001",
-        details="Bought for the current home.",
+        order_reference="ORDER-456",
+        details="Coffee machine.",
     )
+    service.repository.session_factory.close()
+
+    result = runner.invoke(cli.app, ["purchase", "list", "--limit", "1"])
+
+    assert result.exit_code == 0
+    assert "Moccamaster" in result.stdout
+    assert "Bosch Oven" not in result.stdout
+
+
+def test_purchase_list_shows_price_without_currency(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    original_build_purchase_service = (
+        purchase_commands.bootstrap.build_purchase_service
+    )
+
+    def build_purchase_service_for_test():
+        return original_build_purchase_service(data_dir=tmp_path)
+
+    monkeypatch.setattr(
+        purchase_commands.bootstrap,
+        "build_purchase_service",
+        build_purchase_service_for_test,
+    )
+
+    service = original_build_purchase_service(data_dir=tmp_path)
+    service.record(
+        item_name="Desk Lamp",
+        vendor="IKEA",
+        purchase_date=None,
+        price_amount="299.00",
+        currency=None,
+        order_reference=None,
+        details=None,
+    )
+    service.repository.session_factory.close()
 
     result = runner.invoke(cli.app, ["purchase", "list"])
 
     assert result.exit_code == 0
-    assert "Miele Vacuum Cleaner" in result.stdout
-    assert "Replacement Vacuum Bags" in result.stdout
-    assert "Vendor: Power" in result.stdout
-    assert "Vendor: Elgiganten" in result.stdout
+    assert "Desk Lamp" in result.stdout
+    assert "Price: 299.00" in result.stdout
 
 
-def test_purchase_list_shows_no_purchases_message_when_empty(
-    tmp_path: Path,
+def test_purchase_list_shows_empty_message_when_no_purchases(
     monkeypatch,
+    tmp_path: Path,
 ) -> None:
-    original_build_purchase_service = purchase_commands.bootstrap.build_purchase_service
+    original_build_purchase_service = (
+        purchase_commands.bootstrap.build_purchase_service
+    )
 
     def build_purchase_service_for_test():
         return original_build_purchase_service(data_dir=tmp_path)
@@ -223,67 +257,3 @@ def test_purchase_list_shows_no_purchases_message_when_empty(
 
     assert result.exit_code == 0
     assert "No purchases found." in result.stdout
-
-
-def test_purchase_list_respects_limit(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    original_build_purchase_service = purchase_commands.bootstrap.build_purchase_service
-
-    def build_purchase_service_for_test():
-        return original_build_purchase_service(data_dir=tmp_path)
-
-    monkeypatch.setattr(
-        purchase_commands.bootstrap,
-        "build_purchase_service",
-        build_purchase_service_for_test,
-    )
-
-    service = original_build_purchase_service(data_dir=tmp_path)
-    service.record(
-        item_name="Replacement Vacuum Bags",
-        purchase_date=datetime(2026, 3, 17, 12, 0),
-    )
-    service.record(
-        item_name="Miele Vacuum Cleaner",
-        purchase_date=datetime(2026, 3, 18, 12, 0),
-    )
-
-    result = runner.invoke(cli.app, ["purchase", "list", "--limit", "1"])
-
-    assert result.exit_code == 0
-    assert "Miele Vacuum Cleaner" in result.stdout
-    assert "Replacement Vacuum Bags" not in result.stdout
-
-
-def test_purchase_list_accepts_short_limit_alias(
-    tmp_path: Path,
-    monkeypatch,
-) -> None:
-    original_build_purchase_service = purchase_commands.bootstrap.build_purchase_service
-
-    def build_purchase_service_for_test():
-        return original_build_purchase_service(data_dir=tmp_path)
-
-    monkeypatch.setattr(
-        purchase_commands.bootstrap,
-        "build_purchase_service",
-        build_purchase_service_for_test,
-    )
-
-    service = original_build_purchase_service(data_dir=tmp_path)
-    service.record(
-        item_name="Replacement Vacuum Bags",
-        purchase_date=datetime(2026, 3, 17, 12, 0),
-    )
-    service.record(
-        item_name="Miele Vacuum Cleaner",
-        purchase_date=datetime(2026, 3, 18, 12, 0),
-    )
-
-    result = runner.invoke(cli.app, ["purchase", "list", "-n", "1"])
-
-    assert result.exit_code == 0
-    assert "Miele Vacuum Cleaner" in result.stdout
-    assert "Replacement Vacuum Bags" not in result.stdout

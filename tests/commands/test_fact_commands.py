@@ -435,3 +435,34 @@ def test_fact_list_accepts_short_limit_alias(
     assert result.exit_code == 0
     assert "Second fact" in result.stdout
     assert "First fact" not in result.stdout
+
+def test_fact_list_shows_details_when_present(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    original_build_household_fact_service = (
+        fact_commands.bootstrap.build_household_fact_service
+    )
+
+    def build_household_fact_service_for_test():
+        return original_build_household_fact_service(data_dir=tmp_path)
+
+    monkeypatch.setattr(
+        fact_commands.bootstrap,
+        "build_household_fact_service",
+        build_household_fact_service_for_test,
+    )
+
+    service = original_build_household_fact_service(data_dir=tmp_path)
+    service.record(
+        subject="Water shutoff valve",
+        value="Under kitchen sink",
+        details="Turn clockwise to close",
+    )
+
+    result = runner.invoke(cli.app, ["fact", "list"])
+
+    assert result.exit_code == 0
+    assert "Water shutoff valve" in result.stdout
+    assert "Under kitchen sink" in result.stdout
+    assert "Details: Turn clockwise to close" in result.stdout

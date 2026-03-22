@@ -12,19 +12,22 @@ def test_decision_record_service_record_saves_record(tmp_path: Path) -> None:
     repository = DecisionRecordRepository(session_factory)
     service = DecisionRecordService(repository)
 
-    record = service.record(
-        summary="Use SQLAlchemy",
-        reason="Easier later move to Postgres",
-    )
+    try:
+        record = service.record(
+            summary="Use SQLAlchemy",
+            reason="Easier later move to Postgres",
+        )
 
-    assert record.id is not None
-    assert record.summary == "Use SQLAlchemy"
-    assert record.reason == "Easier later move to Postgres"
+        assert record.id is not None
+        assert record.summary == "Use SQLAlchemy"
+        assert record.reason == "Easier later move to Postgres"
 
-    records = service.list_recent(limit=10)
-    assert len(records) == 1
-    assert records[0].summary == "Use SQLAlchemy"
-    assert records[0].reason == "Easier later move to Postgres"
+        records = service.list_recent(limit=10)
+        assert len(records) == 1
+        assert records[0].summary == "Use SQLAlchemy"
+        assert records[0].reason == "Easier later move to Postgres"
+    finally:
+        session_factory.close()
 
 
 def test_decision_record_service_record_rejects_empty_summary(
@@ -34,11 +37,14 @@ def test_decision_record_service_record_rejects_empty_summary(
     repository = DecisionRecordRepository(session_factory)
     service = DecisionRecordService(repository)
 
-    with pytest.raises(ValueError, match="Decision summary cannot be empty."):
-        service.record(
-            summary="   ",
-            reason="Easier later move to Postgres",
-        )
+    try:
+        with pytest.raises(ValueError, match="Decision summary cannot be empty."):
+            service.record(
+                summary="   ",
+                reason="Easier later move to Postgres",
+            )
+    finally:
+        session_factory.close()
 
 
 def test_decision_record_service_record_rejects_empty_reason(
@@ -48,11 +54,14 @@ def test_decision_record_service_record_rejects_empty_reason(
     repository = DecisionRecordRepository(session_factory)
     service = DecisionRecordService(repository)
 
-    with pytest.raises(ValueError, match="Decision reason cannot be empty."):
-        service.record(
-            summary="Use SQLAlchemy",
-            reason="   ",
-        )
+    try:
+        with pytest.raises(ValueError, match="Decision reason cannot be empty."):
+            service.record(
+                summary="Use SQLAlchemy",
+                reason="   ",
+            )
+    finally:
+        session_factory.close()
 
 
 def test_decision_record_service_record_strips_inputs(tmp_path: Path) -> None:
@@ -60,13 +69,16 @@ def test_decision_record_service_record_strips_inputs(tmp_path: Path) -> None:
     repository = DecisionRecordRepository(session_factory)
     service = DecisionRecordService(repository)
 
-    record = service.record(
-        summary="  Use SQLAlchemy  ",
-        reason="  Easier later move to Postgres  ",
-    )
+    try:
+        record = service.record(
+            summary="  Use SQLAlchemy  ",
+            reason="  Easier later move to Postgres  ",
+        )
 
-    assert record.summary == "Use SQLAlchemy"
-    assert record.reason == "Easier later move to Postgres"
+        assert record.summary == "Use SQLAlchemy"
+        assert record.reason == "Easier later move to Postgres"
+    finally:
+        session_factory.close()
 
 
 def test_decision_record_service_list_recent_returns_newest_first(
@@ -76,20 +88,23 @@ def test_decision_record_service_list_recent_returns_newest_first(
     repository = DecisionRecordRepository(session_factory)
     service = DecisionRecordService(repository)
 
-    service.record(
-        summary="First decision",
-        reason="First reason",
-    )
-    service.record(
-        summary="Second decision",
-        reason="Second reason",
-    )
+    try:
+        service.record(
+            summary="First decision",
+            reason="First reason",
+        )
+        service.record(
+            summary="Second decision",
+            reason="Second reason",
+        )
 
-    records = service.list_recent(limit=10)
+        records = service.list_recent(limit=10)
 
-    assert len(records) == 2
-    assert records[0].summary == "Second decision"
-    assert records[1].summary == "First decision"
+        assert len(records) == 2
+        assert records[0].summary == "Second decision"
+        assert records[1].summary == "First decision"
+    finally:
+        session_factory.close()
 
 
 def test_decision_record_service_list_recent_respects_limit(
@@ -99,19 +114,24 @@ def test_decision_record_service_list_recent_respects_limit(
     repository = DecisionRecordRepository(session_factory)
     service = DecisionRecordService(repository)
 
-    service.record(
-        summary="First decision",
-        reason="First reason",
-    )
-    service.record(
-        summary="Second decision",
-        reason="Second reason",
-    )
-    service.record(
-        summary="Third decision",
-        reason="Third reason",
-    )
+    try:
+        service.record(
+            summary="First decision",
+            reason="First reason",
+        )
+        service.record(
+            summary="Second decision",
+            reason="Second reason",
+        )
+        service.record(
+            summary="Third decision",
+            reason="Third reason",
+        )
 
-    records = service.list_recent(limit=2)
+        records = service.list_recent(limit=2)
 
-    assert len(records) == 2
+        assert len(records) == 2
+        assert records[0].summary == "Third decision"
+        assert records[1].summary == "Second decision"
+    finally:
+        session_factory.close()

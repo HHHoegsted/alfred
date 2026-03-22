@@ -90,6 +90,24 @@ def test_care_instruction_service_record_strips_inputs(
     assert care_instruction.details == "Air dry flat to avoid stretching."
 
 
+def test_care_instruction_service_record_normalizes_blank_optional_fields_to_none(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = CareInstructionRepository(session_factory)
+    service = CareInstructionService(repository)
+
+    care_instruction = service.record(
+        subject="Wool blanket",
+        instruction="Wash on wool cycle with cold water.",
+        category="   ",
+        details="   ",
+    )
+
+    assert care_instruction.category is None
+    assert care_instruction.details is None
+
+
 def test_care_instruction_service_update_updates_existing_care_instruction(
     tmp_path: Path,
 ) -> None:
@@ -141,6 +159,87 @@ def test_care_instruction_service_update_rejects_missing_care_instruction(
         )
 
 
+def test_care_instruction_service_update_rejects_retired_care_instruction(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = CareInstructionRepository(session_factory)
+    service = CareInstructionService(repository)
+
+    care_instruction = service.record(
+        subject="Guest towels",
+        instruction="Wash at 60C and tumble dry low.",
+        category="Laundry",
+        details=None,
+    )
+    service.retire(
+        care_instruction_id=care_instruction.id,
+        reason="Replaced by updated laundry guidance",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            f"Care instruction {care_instruction.id} is retired "
+            "and cannot be updated."
+        ),
+    ):
+        service.update(
+            care_instruction_id=care_instruction.id,
+            instruction="Use a delicate cycle instead.",
+            category="Laundry",
+            details=None,
+        )
+
+
+def test_care_instruction_service_update_rejects_empty_instruction(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = CareInstructionRepository(session_factory)
+    service = CareInstructionService(repository)
+
+    care_instruction = service.record(
+        subject="Wool blanket",
+        instruction="Wash on wool cycle with cold water.",
+        category="Cleaning",
+        details="Air dry flat to avoid stretching.",
+    )
+
+    with pytest.raises(ValueError, match="Instruction cannot be empty."):
+        service.update(
+            care_instruction_id=care_instruction.id,
+            instruction="   ",
+            category="Laundry",
+            details="Do not tumble dry.",
+        )
+
+
+def test_care_instruction_service_update_normalizes_blank_optional_fields_to_none(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = CareInstructionRepository(session_factory)
+    service = CareInstructionService(repository)
+
+    care_instruction = service.record(
+        subject="Wool blanket",
+        instruction="Wash on wool cycle with cold water.",
+        category="Cleaning",
+        details="Air dry flat to avoid stretching.",
+    )
+
+    updated_care_instruction = service.update(
+        care_instruction_id=care_instruction.id,
+        instruction="Hand wash gently in cold water.",
+        category="   ",
+        details="   ",
+    )
+
+    assert updated_care_instruction.category is None
+    assert updated_care_instruction.details is None
+
+
 def test_care_instruction_service_retire_retires_existing_care_instruction(
     tmp_path: Path,
 ) -> None:
@@ -186,6 +285,57 @@ def test_care_instruction_service_retire_rejects_missing_care_instruction(
             care_instruction_id=9999,
             reason="No longer active",
         )
+
+
+def test_care_instruction_service_retire_rejects_already_retired_care_instruction(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = CareInstructionRepository(session_factory)
+    service = CareInstructionService(repository)
+
+    care_instruction = service.record(
+        subject="Guest towels",
+        instruction="Wash at 60C and tumble dry low.",
+        category="Laundry",
+        details=None,
+    )
+    service.retire(
+        care_instruction_id=care_instruction.id,
+        reason="Replaced by updated laundry guidance",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=f"Care instruction {care_instruction.id} is already retired.",
+    ):
+        service.retire(
+            care_instruction_id=care_instruction.id,
+            reason="No longer active",
+        )
+
+
+def test_care_instruction_service_retire_normalizes_blank_reason_to_none(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = CareInstructionRepository(session_factory)
+    service = CareInstructionService(repository)
+
+    care_instruction = service.record(
+        subject="Guest towels",
+        instruction="Wash at 60C and tumble dry low.",
+        category="Laundry",
+        details=None,
+    )
+
+    retired_care_instruction = service.retire(
+        care_instruction_id=care_instruction.id,
+        reason="   ",
+    )
+
+    assert retired_care_instruction.retired_at is not None
+    assert retired_care_instruction.retired_reason is None
 
 
 def test_care_instruction_service_list_recent_returns_newest_first(
@@ -246,3 +396,25 @@ def test_care_instruction_service_list_recent_respects_limit(
     assert len(care_instructions) == 2
     assert care_instructions[0].subject == "Third instruction"
     assert care_instructions[1].subject == "Second instruction"
+
+
+def test_care_instruction_service_list_recent_uses_default_limit(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = CareInstructionRepository(session_factory)
+    service = CareInstructionService(repository)
+
+    for index in range(12):
+        service.record(
+            subject=f"Instruction {index}",
+            instruction=f"Step {index}.",
+            category=None,
+            details=None,
+        )
+
+    care_instructions = service.list_recent()
+
+    assert len(care_instructions) == 10
+    assert care_instructions[0].subject == "Instruction 11"
+    assert care_instructions[-1].subject == "Instruction 2"
