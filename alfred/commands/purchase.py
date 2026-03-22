@@ -101,14 +101,16 @@ def record_purchase(
         typer.echo(str(exc))
         raise typer.Exit(code=1) from exc
 
-    typer.echo(f"Recorded purchase {purchase.id}: {purchase.item_name}")
+    typer.echo("Purchase recorded.")
+    typer.echo(f"[{purchase.id}] {purchase.item_name}")
 
 
 @purchase_app.command("list")
 def list_purchases(
     limit: int = typer.Option(
-        20,
+        10,
         "--limit",
+        "-n",
         min=1,
         help="Maximum number of purchases to show.",
     ),

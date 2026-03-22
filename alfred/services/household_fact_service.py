@@ -80,5 +80,5 @@ class HouseholdFactService:
             reason=reason,
         )
 
-    def list_recent(self, limit: int = 20) -> list[HouseholdFact]:
+    def list_recent(self, limit: int = 10) -> list[HouseholdFact]:
         return self.repository.list_recent(limit=limit)

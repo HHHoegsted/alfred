@@ -40,7 +40,7 @@ def test_decision_record_records_decision(
 
     assert result.exit_code == 0
     assert "Decision recorded." in result.stdout
-    assert "Use Home Assistant for house orchestration" in result.stdout
+    assert "[1] Use Home Assistant for house orchestration" in result.stdout
 
     service = original_build_decision_record_service(data_dir=tmp_path)
     records = service.list_recent(limit=10)
@@ -167,3 +167,37 @@ def test_decision_list_shows_no_decision_records_message_when_empty(
 
     assert result.exit_code == 0
     assert "No decision records found." in result.stdout
+
+
+def test_decision_list_accepts_short_limit_alias(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    original_build_decision_record_service = (
+        decision_commands.bootstrap.build_decision_record_service
+    )
+
+    def build_decision_record_service_for_test():
+        return original_build_decision_record_service(data_dir=tmp_path)
+
+    monkeypatch.setattr(
+        decision_commands.bootstrap,
+        "build_decision_record_service",
+        build_decision_record_service_for_test,
+    )
+
+    service = original_build_decision_record_service(data_dir=tmp_path)
+    service.record(
+        summary="First decision",
+        reason="First reason",
+    )
+    service.record(
+        summary="Second decision",
+        reason="Second reason",
+    )
+
+    result = runner.invoke(cli.app, ["decision", "list", "-n", "1"])
+
+    assert result.exit_code == 0
+    assert "Second decision" in result.stdout
+    assert "First decision" not in result.stdout

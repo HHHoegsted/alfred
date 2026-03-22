@@ -27,6 +27,7 @@ def test_note_capture_saves_note_and_prints_confirmation(
 
     assert result.exit_code == 0
     assert "Note captured." in result.stdout
+    assert "[1] Remember the milk" in result.stdout
 
     service = original_build_note_service(data_dir=tmp_path)
     notes = service.list_recent(limit=10)
@@ -66,6 +67,30 @@ def test_note_list_rejects_limit_below_one() -> None:
     result = runner.invoke(cli.app, ["note", "list", "--limit", "0"])
 
     assert result.exit_code != 0
+
+
+def test_note_list_accepts_short_limit_alias(
+    tmp_path: Path, monkeypatch
+) -> None:
+    original_build_note_service = note_commands.bootstrap.build_note_service
+
+    def build_note_service_for_test():
+        return original_build_note_service(data_dir=tmp_path)
+
+    monkeypatch.setattr(
+        note_commands.bootstrap,
+        "build_note_service",
+        build_note_service_for_test,
+    )
+
+    runner.invoke(cli.app, ["note", "capture", "First note"])
+    runner.invoke(cli.app, ["note", "capture", "Second note"])
+
+    result = runner.invoke(cli.app, ["note", "list", "-n", "1"])
+
+    assert result.exit_code == 0
+    assert "Second note" in result.stdout
+    assert "First note" not in result.stdout
 
 
 def test_note_search_returns_matching_notes(tmp_path: Path, monkeypatch) -> None:
@@ -122,3 +147,27 @@ def test_note_search_rejects_limit_below_one() -> None:
     result = runner.invoke(cli.app, ["note", "search", "milk", "--limit", "0"])
 
     assert result.exit_code != 0
+
+
+def test_note_search_accepts_short_limit_alias(
+    tmp_path: Path, monkeypatch
+) -> None:
+    original_build_note_service = note_commands.bootstrap.build_note_service
+
+    def build_note_service_for_test():
+        return original_build_note_service(data_dir=tmp_path)
+
+    monkeypatch.setattr(
+        note_commands.bootstrap,
+        "build_note_service",
+        build_note_service_for_test,
+    )
+
+    runner.invoke(cli.app, ["note", "capture", "milk first"])
+    runner.invoke(cli.app, ["note", "capture", "milk second"])
+
+    result = runner.invoke(cli.app, ["note", "search", "milk", "-n", "1"])
+
+    assert result.exit_code == 0
+    assert "milk second" in result.stdout
+    assert "milk first" not in result.stdout

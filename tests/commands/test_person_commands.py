@@ -34,7 +34,7 @@ def test_person_add_registers_household_member(monkeypatch, tmp_path: Path) -> N
 
     assert result.exit_code == 0
     assert "Person registered." in result.stdout
-    assert "Sara" in result.stdout
+    assert "[1] Sara" in result.stdout
 
     service = original_build_person_service(data_dir=tmp_path)
     people = service.list_recent(limit=10)
@@ -112,3 +112,29 @@ def test_person_list_shows_no_people_message_when_empty(
 
     assert result.exit_code == 0
     assert "No people found." in result.stdout
+
+
+def test_person_list_accepts_short_limit_alias(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    original_build_person_service = person_commands.bootstrap.build_person_service
+
+    def build_person_service_for_test():
+        return original_build_person_service(data_dir=tmp_path)
+
+    monkeypatch.setattr(
+        person_commands.bootstrap,
+        "build_person_service",
+        build_person_service_for_test,
+    )
+
+    service = original_build_person_service(data_dir=tmp_path)
+    service.register(name="First", is_household_member=False)
+    service.register(name="Second", is_household_member=True)
+
+    result = runner.invoke(cli.app, ["person", "list", "-n", "1"])
+
+    assert result.exit_code == 0
+    assert "Second" in result.stdout
+    assert "First" not in result.stdout

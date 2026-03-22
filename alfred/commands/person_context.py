@@ -2,22 +2,19 @@ import typer
 
 import alfred.bootstrap as bootstrap
 from alfred.common import format_timestamp
+from alfred.models import Person
 
 
 person_app = typer.Typer(help="Record and review known people.")
 
 
-def display_people(people: list) -> None:
-    if not people:
-        typer.echo("No people found.")
-        return
-
+def display_people(people: list[Person]) -> None:
     for person in people:
         pretty_timestamp = format_timestamp(person.created_at.isoformat())
         membership = "household member" if person.is_household_member else "known person"
         typer.echo(f"[{person.id}] {pretty_timestamp}")
-        typer.echo(f"  Name:   {person.name}")
-        typer.echo(f"  Status: {membership}")
+        typer.echo(f" Name: {person.name}")
+        typer.echo(f" Status: {membership}")
         typer.echo()
 
 
@@ -45,7 +42,8 @@ def add_person(
         typer.echo(str(exc))
         raise typer.Exit(code=1) from exc
 
-    typer.echo(f"Person registered. [#{person.id}] {person.name}")
+    typer.echo("Person registered.")
+    typer.echo(f"[{person.id}] {person.name}")
 
 
 @person_app.command("list")
@@ -60,4 +58,9 @@ def list_people(
 ) -> None:
     service = bootstrap.build_person_service()
     people = service.list_recent(limit=limit)
+
+    if not people:
+        typer.echo("No people found.")
+        return
+
     display_people(people)

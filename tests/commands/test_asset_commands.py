@@ -46,8 +46,8 @@ def test_asset_record_saves_asset_and_prints_confirmation(
     )
 
     assert result.exit_code == 0
-    assert "Recorded asset" in result.stdout
-    assert "Bosch Oven" in result.stdout
+    assert "Asset recorded." in result.stdout
+    assert "[1] Bosch Oven" in result.stdout
 
     service = original_build_asset_service(data_dir=tmp_path)
     assets = service.list_recent(limit=10)
@@ -77,10 +77,10 @@ def test_asset_record_rejects_empty_name(
         build_asset_service_for_test,
     )
 
-    result = runner.invoke(cli.app, ["asset", "record", "   "])
+    result = runner.invoke(cli.app, ["asset", "record", " "])
 
     assert result.exit_code == 1
-    assert "Name cannot be empty." in result.stdout
+    assert "Asset name cannot be empty." in result.stdout
 
 
 def test_asset_list_shows_assets(
@@ -168,6 +168,32 @@ def test_asset_list_respects_limit(
     service.record(name="Dyson Vacuum")
 
     result = runner.invoke(cli.app, ["asset", "list", "--limit", "1"])
+
+    assert result.exit_code == 0
+    assert "Dyson Vacuum" in result.stdout
+    assert "Bosch Oven" not in result.stdout
+
+
+def test_asset_list_accepts_short_limit_alias(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    original_build_asset_service = asset_commands.bootstrap.build_asset_service
+
+    def build_asset_service_for_test():
+        return original_build_asset_service(data_dir=tmp_path)
+
+    monkeypatch.setattr(
+        asset_commands.bootstrap,
+        "build_asset_service",
+        build_asset_service_for_test,
+    )
+
+    service = original_build_asset_service(data_dir=tmp_path)
+    service.record(name="Bosch Oven")
+    service.record(name="Dyson Vacuum")
+
+    result = runner.invoke(cli.app, ["asset", "list", "-n", "1"])
 
     assert result.exit_code == 0
     assert "Dyson Vacuum" in result.stdout

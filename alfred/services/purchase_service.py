@@ -26,7 +26,7 @@ class PurchaseService:
         details = details.strip() if details is not None else None
 
         if not item_name:
-            raise ValueError("Item name cannot be empty.")
+            raise ValueError("Purchase item name cannot be empty.")
 
         if vendor == "":
             vendor = None
@@ -56,5 +56,5 @@ class PurchaseService:
             details=details,
         )
 
-    def list_recent(self, limit: int = 20) -> list[Purchase]:
+    def list_recent(self, limit: int = 10) -> list[Purchase]:
         return self.repository.list_recent(limit=limit)

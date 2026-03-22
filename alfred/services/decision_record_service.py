@@ -21,5 +21,5 @@ class DecisionRecordService:
             reason=cleaned_reason,
         )
 
-    def list_recent(self, limit: int = 20) -> list[DecisionRecord]:
+    def list_recent(self, limit: int = 10) -> list[DecisionRecord]:
         return self.repository.list_recent(limit=limit)

@@ -21,5 +21,5 @@ class PersonService:
             is_household_member=is_household_member,
         )
 
-    def list_recent(self, limit: int = 20) -> list[Person]:
+    def list_recent(self, limit: int = 10) -> list[Person]:
         return self.repository.list_recent(limit=limit)

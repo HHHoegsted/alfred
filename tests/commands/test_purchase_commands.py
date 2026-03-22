@@ -47,8 +47,8 @@ def test_purchase_record_saves_purchase_and_prints_confirmation(
     )
 
     assert result.exit_code == 0
-    assert "Recorded purchase" in result.stdout
-    assert "Miele Vacuum Cleaner" in result.stdout
+    assert "Purchase recorded." in result.stdout
+    assert "[1] Miele Vacuum Cleaner" in result.stdout
 
     service = original_build_purchase_service(data_dir=tmp_path)
     purchases = service.list_recent(limit=10)
@@ -90,8 +90,8 @@ def test_purchase_record_uses_current_datetime_when_purchase_date_not_passed(
     )
 
     assert result.exit_code == 0
-    assert "Recorded purchase" in result.stdout
-    assert "Replacement Vacuum Bags" in result.stdout
+    assert "Purchase recorded." in result.stdout
+    assert "[1] Replacement Vacuum Bags" in result.stdout
 
     service = original_build_purchase_service(data_dir=tmp_path)
     purchases = service.list_recent(limit=10)
@@ -122,12 +122,12 @@ def test_purchase_record_rejects_empty_item_name(
         [
             "purchase",
             "record",
-            "   ",
+            " ",
         ],
     )
 
     assert result.exit_code == 1
-    assert "Item name cannot be empty." in result.stdout
+    assert "Purchase item name cannot be empty." in result.stdout
 
 
 def test_purchase_record_rejects_invalid_purchase_date(
@@ -251,6 +251,38 @@ def test_purchase_list_respects_limit(
     )
 
     result = runner.invoke(cli.app, ["purchase", "list", "--limit", "1"])
+
+    assert result.exit_code == 0
+    assert "Miele Vacuum Cleaner" in result.stdout
+    assert "Replacement Vacuum Bags" not in result.stdout
+
+
+def test_purchase_list_accepts_short_limit_alias(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    original_build_purchase_service = purchase_commands.bootstrap.build_purchase_service
+
+    def build_purchase_service_for_test():
+        return original_build_purchase_service(data_dir=tmp_path)
+
+    monkeypatch.setattr(
+        purchase_commands.bootstrap,
+        "build_purchase_service",
+        build_purchase_service_for_test,
+    )
+
+    service = original_build_purchase_service(data_dir=tmp_path)
+    service.record(
+        item_name="Replacement Vacuum Bags",
+        purchase_date=datetime(2026, 3, 17, 12, 0),
+    )
+    service.record(
+        item_name="Miele Vacuum Cleaner",
+        purchase_date=datetime(2026, 3, 18, 12, 0),
+    )
+
+    result = runner.invoke(cli.app, ["purchase", "list", "-n", "1"])
 
     assert result.exit_code == 0
     assert "Miele Vacuum Cleaner" in result.stdout

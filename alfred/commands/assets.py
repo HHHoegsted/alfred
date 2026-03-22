@@ -62,12 +62,19 @@ def record(
         typer.echo(str(exc))
         raise typer.Exit(code=1) from exc
 
-    typer.echo(f"Recorded asset {asset.id}: {asset.name}")
+    typer.echo("Asset recorded.")
+    typer.echo(f"[{asset.id}] {asset.name}")
 
 
 @asset_app.command("list")
 def list_recent(
-    limit: int = typer.Option(20, "--limit", min=1, help="Maximum number of assets to show."),
+    limit: int = typer.Option(
+        10,
+        "--limit",
+        "-n",
+        min=1,
+        help="Maximum number of assets to show.",
+    ),
 ) -> None:
     service = bootstrap.build_asset_service()
     assets = service.list_recent(limit=limit)
