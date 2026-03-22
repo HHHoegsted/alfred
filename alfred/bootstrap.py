@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import TypeVar
 
 from alfred.db import SQLAlchemySessionFactory
 from alfred.repositories import (
@@ -23,6 +24,10 @@ from alfred.services import (
 )
 
 
+RepositoryT = TypeVar("RepositoryT")
+ServiceT = TypeVar("ServiceT")
+
+
 def get_data_dir(data_dir: Path | None = None) -> Path:
     if data_dir is not None:
         return data_dir
@@ -41,57 +46,63 @@ def init_sqlalchemy(data_dir: Path | None = None) -> SQLAlchemySessionFactory:
     return session_factory
 
 
-def build_note_service(data_dir: Path | None = None) -> NoteService:
+def _build_service(
+    data_dir: Path | None,
+    repository_cls: type[RepositoryT],
+    service_cls: type[ServiceT],
+) -> ServiceT:
     session_factory = init_sqlalchemy(data_dir)
-    repository = NoteRepository(session_factory)
-    return NoteService(repository)
+    repository = repository_cls(session_factory)
+    return service_cls(repository)
+
+
+def build_note_service(data_dir: Path | None = None) -> NoteService:
+    return _build_service(data_dir, NoteRepository, NoteService)
 
 
 def build_decision_record_service(
     data_dir: Path | None = None,
 ) -> DecisionRecordService:
-    session_factory = init_sqlalchemy(data_dir)
-    repository = DecisionRecordRepository(session_factory)
-    return DecisionRecordService(repository)
+    return _build_service(
+        data_dir,
+        DecisionRecordRepository,
+        DecisionRecordService,
+    )
 
 
 def build_person_service(data_dir: Path | None = None) -> PersonService:
-    session_factory = init_sqlalchemy(data_dir)
-    repository = PersonRepository(session_factory)
-    return PersonService(repository)
+    return _build_service(data_dir, PersonRepository, PersonService)
 
 
 def build_household_fact_service(
     data_dir: Path | None = None,
 ) -> HouseholdFactService:
-    session_factory = init_sqlalchemy(data_dir)
-    repository = HouseholdFactRepository(session_factory)
-    return HouseholdFactService(repository)
+    return _build_service(
+        data_dir,
+        HouseholdFactRepository,
+        HouseholdFactService,
+    )
 
 
 def build_asset_service(data_dir: Path | None = None) -> AssetService:
-    session_factory = init_sqlalchemy(data_dir)
-    repository = AssetRepository(session_factory)
-    return AssetService(repository)
+    return _build_service(data_dir, AssetRepository, AssetService)
 
 
 def build_purchase_service(data_dir: Path | None = None) -> PurchaseService:
-    session_factory = init_sqlalchemy(data_dir)
-    repository = PurchaseRepository(session_factory)
-    return PurchaseService(repository)
+    return _build_service(data_dir, PurchaseRepository, PurchaseService)
 
 
 def build_care_instruction_service(
     data_dir: Path | None = None,
 ) -> CareInstructionService:
-    session_factory = init_sqlalchemy(data_dir)
-    repository = CareInstructionRepository(session_factory)
-    return CareInstructionService(repository)
+    return _build_service(
+        data_dir,
+        CareInstructionRepository,
+        CareInstructionService,
+    )
 
 
 def build_procedure_service(
     data_dir: Path | None = None,
 ) -> ProcedureService:
-    session_factory = init_sqlalchemy(data_dir)
-    repository = ProcedureRepository(session_factory)
-    return ProcedureService(repository)
+    return _build_service(data_dir, ProcedureRepository, ProcedureService)
