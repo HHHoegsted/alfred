@@ -37,6 +37,8 @@ def record_decision(
     except ValueError as exc:
         typer.echo(str(exc))
         raise typer.Exit(code=1) from exc
+    finally:
+        service.repository.session_factory.close()
 
     typer.echo("Decision recorded.")
     typer.echo(f"[{record.id}] {record.summary}")
@@ -53,7 +55,11 @@ def list_decisions(
     ),
 ) -> None:
     service = bootstrap.build_decision_record_service()
-    records = service.list_recent(limit=limit)
+
+    try:
+        records = service.list_recent(limit=limit)
+    finally:
+        service.repository.session_factory.close()
 
     if not records:
         typer.echo("No decision records found.")

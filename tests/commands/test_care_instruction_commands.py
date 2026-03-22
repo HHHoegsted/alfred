@@ -47,13 +47,16 @@ def test_care_add_records_care_instruction(
     assert "[1] Wool blanket" in result.stdout
 
     service = original_build_care_instruction_service(data_dir=tmp_path)
-    care_instructions = service.list_recent(limit=10)
+    try:
+        care_instructions = service.list_recent(limit=10)
 
-    assert len(care_instructions) == 1
-    assert care_instructions[0].subject == "Wool blanket"
-    assert care_instructions[0].instruction == "Wash on wool cycle with cold water."
-    assert care_instructions[0].category == "Cleaning"
-    assert care_instructions[0].details == "Air dry flat to avoid stretching."
+        assert len(care_instructions) == 1
+        assert care_instructions[0].subject == "Wool blanket"
+        assert care_instructions[0].instruction == "Wash on wool cycle with cold water."
+        assert care_instructions[0].category == "Cleaning"
+        assert care_instructions[0].details == "Air dry flat to avoid stretching."
+    finally:
+        service.repository.session_factory.close()
 
 
 def test_care_add_rejects_blank_subject(
@@ -140,41 +143,47 @@ def test_care_update_updates_existing_care_instruction(
     )
 
     service = original_build_care_instruction_service(data_dir=tmp_path)
-    care_instruction = service.record(
-        subject="Wool blanket",
-        instruction="Wash on wool cycle with cold water.",
-        category="Cleaning",
-        details="Air dry flat to avoid stretching.",
-    )
+    try:
+        care_instruction = service.record(
+            subject="Wool blanket",
+            instruction="Wash on wool cycle with cold water.",
+            category="Cleaning",
+            details="Air dry flat to avoid stretching.",
+        )
 
-    result = runner.invoke(
-        cli.app,
-        [
-            "care",
-            "update",
-            str(care_instruction.id),
-            "--instruction",
-            "Hand wash gently in cold water.",
-            "--category",
-            "Laundry",
-            "--details",
-            "Do not tumble dry.",
-        ],
-    )
+        result = runner.invoke(
+            cli.app,
+            [
+                "care",
+                "update",
+                str(care_instruction.id),
+                "--instruction",
+                "Hand wash gently in cold water.",
+                "--category",
+                "Laundry",
+                "--details",
+                "Do not tumble dry.",
+            ],
+        )
 
-    assert result.exit_code == 0
-    assert "Care instruction updated." in result.stdout
-    assert f"[{care_instruction.id}] Wool blanket" in result.stdout
+        assert result.exit_code == 0
+        assert "Care instruction updated." in result.stdout
+        assert f"[{care_instruction.id}] Wool blanket" in result.stdout
+    finally:
+        service.repository.session_factory.close()
 
     refreshed_service = original_build_care_instruction_service(data_dir=tmp_path)
-    care_instructions = refreshed_service.list_recent(limit=10)
+    try:
+        care_instructions = refreshed_service.list_recent(limit=10)
 
-    assert len(care_instructions) == 1
-    assert care_instructions[0].id == care_instruction.id
-    assert care_instructions[0].subject == "Wool blanket"
-    assert care_instructions[0].instruction == "Hand wash gently in cold water."
-    assert care_instructions[0].category == "Laundry"
-    assert care_instructions[0].details == "Do not tumble dry."
+        assert len(care_instructions) == 1
+        assert care_instructions[0].id == care_instruction.id
+        assert care_instructions[0].subject == "Wool blanket"
+        assert care_instructions[0].instruction == "Hand wash gently in cold water."
+        assert care_instructions[0].category == "Laundry"
+        assert care_instructions[0].details == "Do not tumble dry."
+    finally:
+        refreshed_service.repository.session_factory.close()
 
 
 def test_care_update_rejects_blank_instruction(
@@ -195,24 +204,27 @@ def test_care_update_rejects_blank_instruction(
     )
 
     service = original_build_care_instruction_service(data_dir=tmp_path)
-    care_instruction = service.record(
-        subject="Wool blanket",
-        instruction="Wash on wool cycle with cold water.",
-    )
+    try:
+        care_instruction = service.record(
+            subject="Wool blanket",
+            instruction="Wash on wool cycle with cold water.",
+        )
 
-    result = runner.invoke(
-        cli.app,
-        [
-            "care",
-            "update",
-            str(care_instruction.id),
-            "--instruction",
-            "   ",
-        ],
-    )
+        result = runner.invoke(
+            cli.app,
+            [
+                "care",
+                "update",
+                str(care_instruction.id),
+                "--instruction",
+                "   ",
+            ],
+        )
 
-    assert result.exit_code != 0
-    assert "Instruction cannot be empty." in result.stdout
+        assert result.exit_code != 0
+        assert "Instruction cannot be empty." in result.stdout
+    finally:
+        service.repository.session_factory.close()
 
 
 def test_care_update_rejects_missing_care_instruction(
@@ -265,35 +277,42 @@ def test_care_retire_retires_existing_care_instruction(
     )
 
     service = original_build_care_instruction_service(data_dir=tmp_path)
-    care_instruction = service.record(
-        subject="Wool blanket",
-        instruction="Wash on wool cycle with cold water.",
-    )
+    try:
+        care_instruction = service.record(
+            subject="Wool blanket",
+            instruction="Wash on wool cycle with cold water.",
+        )
 
-    result = runner.invoke(
-        cli.app,
-        [
-            "care",
-            "retire",
-            str(care_instruction.id),
-            "--reason",
-            "Replaced by updated manufacturer guidance.",
-        ],
-    )
+        result = runner.invoke(
+            cli.app,
+            [
+                "care",
+                "retire",
+                str(care_instruction.id),
+                "--reason",
+                "Replaced by updated manufacturer guidance.",
+            ],
+        )
 
-    assert result.exit_code == 0
-    assert "Care instruction retired." in result.stdout
-    assert f"[{care_instruction.id}] Wool blanket" in result.stdout
+        assert result.exit_code == 0
+        assert "Care instruction retired." in result.stdout
+        assert f"[{care_instruction.id}] Wool blanket" in result.stdout
+    finally:
+        service.repository.session_factory.close()
 
-    stored_care_instruction = original_build_care_instruction_service(
-        data_dir=tmp_path
-    ).repository.get_by_id(care_instruction.id)
-    assert stored_care_instruction is not None
-    assert stored_care_instruction.retired_at is not None
-    assert (
-        stored_care_instruction.retired_reason
-        == "Replaced by updated manufacturer guidance."
-    )
+    verification_service = original_build_care_instruction_service(data_dir=tmp_path)
+    try:
+        stored_care_instruction = verification_service.repository.get_by_id(
+            care_instruction.id
+        )
+        assert stored_care_instruction is not None
+        assert stored_care_instruction.retired_at is not None
+        assert (
+            stored_care_instruction.retired_reason
+            == "Replaced by updated manufacturer guidance."
+        )
+    finally:
+        verification_service.repository.session_factory.close()
 
 
 def test_care_retire_rejects_missing_care_instruction(
@@ -344,26 +363,29 @@ def test_care_list_shows_care_instructions(
     )
 
     service = original_build_care_instruction_service(data_dir=tmp_path)
-    service.record(
-        subject="Wool blanket",
-        instruction="Wash on wool cycle with cold water.",
-        category="Cleaning",
-        details="Air dry flat to avoid stretching.",
-    )
-    service.record(
-        subject="Coffee grinder",
-        instruction="Brush burrs weekly and keep dry.",
-        category="Maintenance",
-        details="Do not rinse with water.",
-    )
+    try:
+        service.record(
+            subject="Wool blanket",
+            instruction="Wash on wool cycle with cold water.",
+            category="Cleaning",
+            details="Air dry flat to avoid stretching.",
+        )
+        service.record(
+            subject="Coffee grinder",
+            instruction="Brush burrs weekly and keep dry.",
+            category="Maintenance",
+            details="Do not rinse with water.",
+        )
 
-    result = runner.invoke(cli.app, ["care", "list"])
+        result = runner.invoke(cli.app, ["care", "list"])
 
-    assert result.exit_code == 0
-    assert "Wool blanket" in result.stdout
-    assert "Coffee grinder" in result.stdout
-    assert "Category: Cleaning" in result.stdout
-    assert "Category: Maintenance" in result.stdout
+        assert result.exit_code == 0
+        assert "Wool blanket" in result.stdout
+        assert "Coffee grinder" in result.stdout
+        assert "Category: Cleaning" in result.stdout
+        assert "Category: Maintenance" in result.stdout
+    finally:
+        service.repository.session_factory.close()
 
 
 def test_care_list_shows_no_care_instructions_message_when_empty(
@@ -407,20 +429,23 @@ def test_care_list_respects_limit(
     )
 
     service = original_build_care_instruction_service(data_dir=tmp_path)
-    service.record(
-        subject="Wool blanket",
-        instruction="Wash on wool cycle with cold water.",
-    )
-    service.record(
-        subject="Coffee grinder",
-        instruction="Brush burrs weekly and keep dry.",
-    )
+    try:
+        service.record(
+            subject="Wool blanket",
+            instruction="Wash on wool cycle with cold water.",
+        )
+        service.record(
+            subject="Coffee grinder",
+            instruction="Brush burrs weekly and keep dry.",
+        )
 
-    result = runner.invoke(cli.app, ["care", "list", "--limit", "1"])
+        result = runner.invoke(cli.app, ["care", "list", "--limit", "1"])
 
-    assert result.exit_code == 0
-    assert "Coffee grinder" in result.stdout
-    assert "Wool blanket" not in result.stdout
+        assert result.exit_code == 0
+        assert "Coffee grinder" in result.stdout
+        assert "Wool blanket" not in result.stdout
+    finally:
+        service.repository.session_factory.close()
 
 
 def test_care_list_accepts_short_limit_alias(
@@ -441,17 +466,20 @@ def test_care_list_accepts_short_limit_alias(
     )
 
     service = original_build_care_instruction_service(data_dir=tmp_path)
-    service.record(
-        subject="Wool blanket",
-        instruction="Wash on wool cycle with cold water.",
-    )
-    service.record(
-        subject="Coffee grinder",
-        instruction="Brush burrs weekly and keep dry.",
-    )
+    try:
+        service.record(
+            subject="Wool blanket",
+            instruction="Wash on wool cycle with cold water.",
+        )
+        service.record(
+            subject="Coffee grinder",
+            instruction="Brush burrs weekly and keep dry.",
+        )
 
-    result = runner.invoke(cli.app, ["care", "list", "-n", "1"])
+        result = runner.invoke(cli.app, ["care", "list", "-n", "1"])
 
-    assert result.exit_code == 0
-    assert "Coffee grinder" in result.stdout
-    assert "Wool blanket" not in result.stdout
+        assert result.exit_code == 0
+        assert "Coffee grinder" in result.stdout
+        assert "Wool blanket" not in result.stdout
+    finally:
+        service.repository.session_factory.close()

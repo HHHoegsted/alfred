@@ -51,6 +51,8 @@ def add(
     except ValueError as exc:
         typer.echo(str(exc))
         raise typer.Exit(code=1) from exc
+    finally:
+        service.repository.session_factory.close()
 
     typer.echo("Procedure recorded.")
     typer.echo(f"[{procedure_record.id}] {procedure_record.subject}")
@@ -86,6 +88,8 @@ def update(
     except ValueError as exc:
         typer.echo(str(exc))
         raise typer.Exit(code=1) from exc
+    finally:
+        service.repository.session_factory.close()
 
     typer.echo("Procedure updated.")
     typer.echo(f"[{procedure_record.id}] {procedure_record.subject}")
@@ -113,6 +117,8 @@ def retire(
     except ValueError as exc:
         typer.echo(str(exc))
         raise typer.Exit(code=1) from exc
+    finally:
+        service.repository.session_factory.close()
 
     typer.echo("Procedure retired.")
     typer.echo(f"[{procedure_record.id}] {procedure_record.subject}")
@@ -129,7 +135,11 @@ def list_procedures(
     ),
 ) -> None:
     service = bootstrap.build_procedure_service()
-    procedures: list[Procedure] = service.list_recent(limit=limit)
+
+    try:
+        procedures: list[Procedure] = service.list_recent(limit=limit)
+    finally:
+        service.repository.session_factory.close()
 
     if not procedures:
         typer.echo("No procedures found.")

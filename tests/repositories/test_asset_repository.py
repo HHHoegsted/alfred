@@ -12,51 +12,61 @@ def build_asset_repository(tmp_path: Path) -> AssetRepository:
 def test_create_stores_asset(tmp_path: Path) -> None:
     repository = build_asset_repository(tmp_path)
 
-    asset = repository.create(
-        name="Vacuum cleaner",
-        category="Appliance",
-        location="Utility room",
-        brand="Miele",
-        model="Complete C3",
-        serial_number="VC-123",
-        details="Main household vacuum",
-    )
+    try:
+        asset = repository.create(
+            name="Vacuum cleaner",
+            category="Appliance",
+            location="Utility room",
+            brand="Miele",
+            model="Complete C3",
+            serial_number="VC-123",
+            details="Main household vacuum",
+        )
 
-    assert asset.id is not None
-    assert asset.name == "Vacuum cleaner"
-    assert asset.category == "Appliance"
-    assert asset.location == "Utility room"
-    assert asset.brand == "Miele"
-    assert asset.model == "Complete C3"
-    assert asset.serial_number == "VC-123"
-    assert asset.details == "Main household vacuum"
+        assert asset.id is not None
+        assert asset.name == "Vacuum cleaner"
+        assert asset.category == "Appliance"
+        assert asset.location == "Utility room"
+        assert asset.brand == "Miele"
+        assert asset.model == "Complete C3"
+        assert asset.serial_number == "VC-123"
+        assert asset.details == "Main household vacuum"
+    finally:
+        repository.session_factory.close()
 
 
 def test_get_by_id_returns_asset(tmp_path: Path) -> None:
     repository = build_asset_repository(tmp_path)
-    created_asset = repository.create(
-        name="Air fryer",
-        category="Kitchen",
-        location="Pantry",
-        brand="Philips",
-        model="XL",
-        serial_number="AF-456",
-        details="Bought for quick dinners",
-    )
 
-    asset = repository.get_by_id(created_asset.id)
+    try:
+        created_asset = repository.create(
+            name="Air fryer",
+            category="Kitchen",
+            location="Pantry",
+            brand="Philips",
+            model="XL",
+            serial_number="AF-456",
+            details="Bought for quick dinners",
+        )
 
-    assert asset is not None
-    assert asset.id == created_asset.id
-    assert asset.name == "Air fryer"
+        asset = repository.get_by_id(created_asset.id)
+
+        assert asset is not None
+        assert asset.id == created_asset.id
+        assert asset.name == "Air fryer"
+    finally:
+        repository.session_factory.close()
 
 
 def test_get_by_id_returns_none_for_missing_asset(tmp_path: Path) -> None:
     repository = build_asset_repository(tmp_path)
 
-    asset = repository.get_by_id(999)
+    try:
+        asset = repository.get_by_id(999)
 
-    assert asset is None
+        assert asset is None
+    finally:
+        repository.session_factory.close()
 
 
 def test_list_recent_returns_non_retired_assets_newest_first(
@@ -64,72 +74,78 @@ def test_list_recent_returns_non_retired_assets_newest_first(
 ) -> None:
     repository = build_asset_repository(tmp_path)
 
-    first_asset = repository.create(
-        name="Old toaster",
-        category="Kitchen",
-        location="Cupboard",
-        brand=None,
-        model=None,
-        serial_number=None,
-        details=None,
-    )
-    second_asset = repository.create(
-        name="New toaster",
-        category="Kitchen",
-        location="Counter",
-        brand=None,
-        model=None,
-        serial_number=None,
-        details=None,
-    )
+    try:
+        first_asset = repository.create(
+            name="Old toaster",
+            category="Kitchen",
+            location="Cupboard",
+            brand=None,
+            model=None,
+            serial_number=None,
+            details=None,
+        )
+        second_asset = repository.create(
+            name="New toaster",
+            category="Kitchen",
+            location="Counter",
+            brand=None,
+            model=None,
+            serial_number=None,
+            details=None,
+        )
 
-    with repository.session_factory.get_session() as session:
-        persisted_first_asset = session.get(type(first_asset), first_asset.id)
-        assert persisted_first_asset is not None
-        persisted_first_asset.retired_at = persisted_first_asset.created_at
-        session.add(persisted_first_asset)
-        session.commit()
+        with repository.session_factory.get_session() as session:
+            persisted_first_asset = session.get(type(first_asset), first_asset.id)
+            assert persisted_first_asset is not None
+            persisted_first_asset.retired_at = persisted_first_asset.created_at
+            session.add(persisted_first_asset)
+            session.commit()
 
-    assets = repository.list_recent()
+        assets = repository.list_recent()
 
-    assert [asset.id for asset in assets] == [second_asset.id]
+        assert [asset.id for asset in assets] == [second_asset.id]
+    finally:
+        repository.session_factory.close()
 
 
 def test_list_recent_respects_limit(tmp_path: Path) -> None:
     repository = build_asset_repository(tmp_path)
 
-    repository.create(
-        name="First asset",
-        category="Kitchen",
-        location="Shelf A",
-        brand=None,
-        model=None,
-        serial_number=None,
-        details=None,
-    )
-    repository.create(
-        name="Second asset",
-        category="Kitchen",
-        location="Shelf B",
-        brand=None,
-        model=None,
-        serial_number=None,
-        details=None,
-    )
-    repository.create(
-        name="Third asset",
-        category="Kitchen",
-        location="Shelf C",
-        brand=None,
-        model=None,
-        serial_number=None,
-        details=None,
-    )
+    try:
+        repository.create(
+            name="First asset",
+            category="Kitchen",
+            location="Shelf A",
+            brand=None,
+            model=None,
+            serial_number=None,
+            details=None,
+        )
+        repository.create(
+            name="Second asset",
+            category="Kitchen",
+            location="Shelf B",
+            brand=None,
+            model=None,
+            serial_number=None,
+            details=None,
+        )
+        repository.create(
+            name="Third asset",
+            category="Kitchen",
+            location="Shelf C",
+            brand=None,
+            model=None,
+            serial_number=None,
+            details=None,
+        )
 
-    assets = repository.list_recent(limit=2)
+        assets = repository.list_recent(limit=2)
 
-    assert len(assets) == 2
-    assert [asset.name for asset in assets] == [
-        "Third asset",
-        "Second asset",
-    ]
+        assert len(assets) == 2
+        assert [asset.name for asset in assets] == [
+            "Third asset",
+            "Second asset",
+        ]
+    finally:
+        repository.session_factory.close()

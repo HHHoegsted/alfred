@@ -52,17 +52,18 @@ def test_purchase_record_saves_purchase_and_prints_confirmation(
     assert "[1] Bosch Oven" in result.stdout
 
     service = original_build_purchase_service(data_dir=tmp_path)
-    purchases = service.list_recent(limit=10)
+    try:
+        purchases = service.list_recent(limit=10)
 
-    assert len(purchases) == 1
-    assert purchases[0].item_name == "Bosch Oven"
-    assert purchases[0].vendor == "Power"
-    assert purchases[0].price_amount == "7499.95"
-    assert purchases[0].currency == "DKK"
-    assert purchases[0].order_reference == "ORDER-123"
-    assert purchases[0].details == "Kitchen oven purchase."
-
-    service.repository.session_factory.close()
+        assert len(purchases) == 1
+        assert purchases[0].item_name == "Bosch Oven"
+        assert purchases[0].vendor == "Power"
+        assert purchases[0].price_amount == "7499.95"
+        assert purchases[0].currency == "DKK"
+        assert purchases[0].order_reference == "ORDER-123"
+        assert purchases[0].details == "Kitchen oven purchase."
+    finally:
+        service.repository.session_factory.close()
 
 
 def test_purchase_record_rejects_empty_item_name(
@@ -173,25 +174,27 @@ def test_purchase_list_shows_recent_purchases(
     )
 
     service = original_build_purchase_service(data_dir=tmp_path)
-    service.record(
-        item_name="Bosch Oven",
-        vendor="Power",
-        purchase_date=None,
-        price_amount="7499.95",
-        currency="DKK",
-        order_reference="ORDER-123",
-        details="Kitchen oven purchase.",
-    )
-    service.record(
-        item_name="Moccamaster",
-        vendor="Elgiganten",
-        purchase_date=None,
-        price_amount="1999.00",
-        currency="DKK",
-        order_reference="ORDER-456",
-        details="Coffee machine.",
-    )
-    service.repository.session_factory.close()
+    try:
+        service.record(
+            item_name="Bosch Oven",
+            vendor="Power",
+            purchase_date=None,
+            price_amount="7499.95",
+            currency="DKK",
+            order_reference="ORDER-123",
+            details="Kitchen oven purchase.",
+        )
+        service.record(
+            item_name="Moccamaster",
+            vendor="Elgiganten",
+            purchase_date=None,
+            price_amount="1999.00",
+            currency="DKK",
+            order_reference="ORDER-456",
+            details="Coffee machine.",
+        )
+    finally:
+        service.repository.session_factory.close()
 
     result = runner.invoke(cli.app, ["purchase", "list", "--limit", "1"])
 
@@ -218,16 +221,18 @@ def test_purchase_list_shows_price_without_currency(
     )
 
     service = original_build_purchase_service(data_dir=tmp_path)
-    service.record(
-        item_name="Desk Lamp",
-        vendor="IKEA",
-        purchase_date=None,
-        price_amount="299.00",
-        currency=None,
-        order_reference=None,
-        details=None,
-    )
-    service.repository.session_factory.close()
+    try:
+        service.record(
+            item_name="Desk Lamp",
+            vendor="IKEA",
+            purchase_date=None,
+            price_amount="299.00",
+            currency=None,
+            order_reference=None,
+            details=None,
+        )
+    finally:
+        service.repository.session_factory.close()
 
     result = runner.invoke(cli.app, ["purchase", "list"])
 

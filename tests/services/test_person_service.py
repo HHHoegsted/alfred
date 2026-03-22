@@ -3,115 +3,87 @@ from pathlib import Path
 import pytest
 
 from alfred.bootstrap import init_sqlalchemy
-from alfred.repositories import PersonRepository
-from alfred.services import PersonService
+from alfred.repositories import NoteRepository
+from alfred.services import NoteService
 
 
-def test_person_service_register_saves_person(tmp_path: Path) -> None:
+def test_note_service_capture_saves_note(tmp_path: Path) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = PersonRepository(session_factory)
-    service = PersonService(repository)
+    repository = NoteRepository(session_factory)
+    service = NoteService(repository)
 
     try:
-        person = service.register(
-            name="Sara",
-            is_household_member=True,
-        )
+        note = service.capture("Remember the milk")
 
-        assert person.id is not None
-        assert person.name == "Sara"
-        assert person.is_household_member is True
+        assert note.id is not None
+        assert note.created_at is not None
+        assert note.text == "Remember the milk"
 
-        people = service.list_recent(limit=10)
-        assert len(people) == 1
-        assert people[0].name == "Sara"
-        assert people[0].is_household_member is True
+        notes = service.list_recent(limit=10)
+
+        assert len(notes) == 1
+        assert notes[0].text == "Remember the milk"
     finally:
         session_factory.close()
 
 
-def test_person_service_register_strips_name(tmp_path: Path) -> None:
+def test_note_service_capture_strips_note_text(tmp_path: Path) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = PersonRepository(session_factory)
-    service = PersonService(repository)
+    repository = NoteRepository(session_factory)
+    service = NoteService(repository)
 
     try:
-        person = service.register(
-            name="  Sara  ",
-            is_household_member=True,
-        )
+        note = service.capture("   Remember the milk   ")
 
-        assert person.name == "Sara"
+        assert note.text == "Remember the milk"
     finally:
         session_factory.close()
 
 
-def test_person_service_register_rejects_empty_name(tmp_path: Path) -> None:
+def test_note_service_capture_rejects_empty_note(tmp_path: Path) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = PersonRepository(session_factory)
-    service = PersonService(repository)
+    repository = NoteRepository(session_factory)
+    service = NoteService(repository)
 
     try:
-        with pytest.raises(ValueError, match="Person name cannot be empty."):
-            service.register(
-                name="   ",
-                is_household_member=True,
-            )
+        with pytest.raises(ValueError, match="Note cannot be empty."):
+            service.capture("   ")
     finally:
         session_factory.close()
 
 
-def test_person_service_list_recent_returns_newest_first(
-    tmp_path: Path,
-) -> None:
+def test_note_service_list_recent_returns_newest_first(tmp_path: Path) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = PersonRepository(session_factory)
-    service = PersonService(repository)
+    repository = NoteRepository(session_factory)
+    service = NoteService(repository)
 
     try:
-        service.register(
-            name="HH",
-            is_household_member=True,
-        )
-        service.register(
-            name="Guest",
-            is_household_member=False,
-        )
+        service.capture("First note")
+        service.capture("Second note")
 
-        people = service.list_recent(limit=10)
+        notes = service.list_recent(limit=10)
 
-        assert len(people) == 2
-        assert people[0].name == "Guest"
-        assert people[1].name == "HH"
+        assert len(notes) == 2
+        assert notes[0].text == "Second note"
+        assert notes[1].text == "First note"
     finally:
         session_factory.close()
 
 
-def test_person_service_list_recent_respects_limit(
-    tmp_path: Path,
-) -> None:
+def test_note_service_list_recent_respects_limit(tmp_path: Path) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = PersonRepository(session_factory)
-    service = PersonService(repository)
+    repository = NoteRepository(session_factory)
+    service = NoteService(repository)
 
     try:
-        service.register(
-            name="HH",
-            is_household_member=True,
-        )
-        service.register(
-            name="Sara",
-            is_household_member=True,
-        )
-        service.register(
-            name="Guest",
-            is_household_member=False,
-        )
+        service.capture("First note")
+        service.capture("Second note")
+        service.capture("Third note")
 
-        people = service.list_recent(limit=2)
+        notes = service.list_recent(limit=2)
 
-        assert len(people) == 2
-        assert people[0].name == "Guest"
-        assert people[1].name == "Sara"
+        assert len(notes) == 2
+        assert notes[0].text == "Third note"
+        assert notes[1].text == "Second note"
     finally:
         session_factory.close()

@@ -26,7 +26,15 @@ def capture(
         raise typer.Exit(code=1)
 
     service = bootstrap.build_note_service()
-    note = service.capture(cleaned_text)
+
+    try:
+        note = service.capture(cleaned_text)
+    except ValueError as exc:
+        typer.echo(str(exc))
+        raise typer.Exit(code=1) from exc
+    finally:
+        service.repository.session_factory.close()
+
     typer.echo("Note captured.")
     typer.echo(f"[{note.id}] {note.text}")
 
@@ -42,7 +50,11 @@ def list_notes(
     ),
 ) -> None:
     service = bootstrap.build_note_service()
-    notes: list[Note] = service.list_recent(limit=limit)
+
+    try:
+        notes: list[Note] = service.list_recent(limit=limit)
+    finally:
+        service.repository.session_factory.close()
 
     if not notes:
         typer.echo("No notes found.")
@@ -68,7 +80,11 @@ def search(
         raise typer.Exit(code=1)
 
     service = bootstrap.build_note_service()
-    notes: list[Note] = service.search(query=cleaned_query, limit=limit)
+
+    try:
+        notes: list[Note] = service.search(query=cleaned_query, limit=limit)
+    finally:
+        service.repository.session_factory.close()
 
     if not notes:
         typer.echo("No matching notes found.")

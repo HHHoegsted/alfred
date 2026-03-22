@@ -45,12 +45,15 @@ def test_fact_add_records_household_fact(
     assert "[1] Water shutoff valve" in result.stdout
 
     service = original_build_household_fact_service(data_dir=tmp_path)
-    facts = service.list_recent(limit=10)
+    try:
+        facts = service.list_recent(limit=10)
 
-    assert len(facts) == 1
-    assert facts[0].subject == "Water shutoff valve"
-    assert facts[0].value == "Under kitchen sink"
-    assert facts[0].details == "Turn clockwise to close"
+        assert len(facts) == 1
+        assert facts[0].subject == "Water shutoff valve"
+        assert facts[0].value == "Under kitchen sink"
+        assert facts[0].details == "Turn clockwise to close"
+    finally:
+        service.repository.session_factory.close()
 
 
 def test_fact_add_rejects_blank_subject(
@@ -137,37 +140,43 @@ def test_fact_update_updates_existing_household_fact(
     )
 
     service = original_build_household_fact_service(data_dir=tmp_path)
-    fact = service.record(
-        subject="Water shutoff valve",
-        value="Under kitchen sink",
-        details="Turn clockwise to close",
-    )
+    try:
+        fact = service.record(
+            subject="Water shutoff valve",
+            value="Under kitchen sink",
+            details="Turn clockwise to close",
+        )
 
-    result = runner.invoke(
-        cli.app,
-        [
-            "fact",
-            "update",
-            str(fact.id),
-            "--value",
-            "Behind utility cabinet",
-            "--details",
-            "Installed during kitchen renovation",
-        ],
-    )
+        result = runner.invoke(
+            cli.app,
+            [
+                "fact",
+                "update",
+                str(fact.id),
+                "--value",
+                "Behind utility cabinet",
+                "--details",
+                "Installed during kitchen renovation",
+            ],
+        )
 
-    assert result.exit_code == 0
-    assert "Household fact updated." in result.stdout
-    assert f"[{fact.id}] Water shutoff valve" in result.stdout
+        assert result.exit_code == 0
+        assert "Household fact updated." in result.stdout
+        assert f"[{fact.id}] Water shutoff valve" in result.stdout
+    finally:
+        service.repository.session_factory.close()
 
     refreshed_service = original_build_household_fact_service(data_dir=tmp_path)
-    facts = refreshed_service.list_recent(limit=10)
+    try:
+        facts = refreshed_service.list_recent(limit=10)
 
-    assert len(facts) == 1
-    assert facts[0].id == fact.id
-    assert facts[0].subject == "Water shutoff valve"
-    assert facts[0].value == "Behind utility cabinet"
-    assert facts[0].details == "Installed during kitchen renovation"
+        assert len(facts) == 1
+        assert facts[0].id == fact.id
+        assert facts[0].subject == "Water shutoff valve"
+        assert facts[0].value == "Behind utility cabinet"
+        assert facts[0].details == "Installed during kitchen renovation"
+    finally:
+        refreshed_service.repository.session_factory.close()
 
 
 def test_fact_update_rejects_blank_value(
@@ -188,24 +197,27 @@ def test_fact_update_rejects_blank_value(
     )
 
     service = original_build_household_fact_service(data_dir=tmp_path)
-    fact = service.record(
-        subject="Water shutoff valve",
-        value="Under kitchen sink",
-    )
+    try:
+        fact = service.record(
+            subject="Water shutoff valve",
+            value="Under kitchen sink",
+        )
 
-    result = runner.invoke(
-        cli.app,
-        [
-            "fact",
-            "update",
-            str(fact.id),
-            "--value",
-            "   ",
-        ],
-    )
+        result = runner.invoke(
+            cli.app,
+            [
+                "fact",
+                "update",
+                str(fact.id),
+                "--value",
+                "   ",
+            ],
+        )
 
-    assert result.exit_code != 0
-    assert "Value cannot be empty." in result.stdout
+        assert result.exit_code != 0
+        assert "Value cannot be empty." in result.stdout
+    finally:
+        service.repository.session_factory.close()
 
 
 def test_fact_update_rejects_missing_fact(
@@ -258,29 +270,35 @@ def test_fact_retire_retires_existing_household_fact(
     )
 
     service = original_build_household_fact_service(data_dir=tmp_path)
-    fact = service.record(
-        subject="Guest Wi-Fi password",
-        value="OldPassword123",
-    )
+    try:
+        fact = service.record(
+            subject="Guest Wi-Fi password",
+            value="OldPassword123",
+        )
 
-    result = runner.invoke(
-        cli.app,
-        [
-            "fact",
-            "retire",
-            str(fact.id),
-            "--reason",
-            "Password changed after router replacement",
-        ],
-    )
+        result = runner.invoke(
+            cli.app,
+            [
+                "fact",
+                "retire",
+                str(fact.id),
+                "--reason",
+                "Password changed after router replacement",
+            ],
+        )
 
-    assert result.exit_code == 0
-    assert "Household fact retired." in result.stdout
-    assert f"[{fact.id}] Guest Wi-Fi password" in result.stdout
+        assert result.exit_code == 0
+        assert "Household fact retired." in result.stdout
+        assert f"[{fact.id}] Guest Wi-Fi password" in result.stdout
+    finally:
+        service.repository.session_factory.close()
 
     refreshed_service = original_build_household_fact_service(data_dir=tmp_path)
-    facts = refreshed_service.list_recent(limit=10)
-    assert len(facts) == 0
+    try:
+        facts = refreshed_service.list_recent(limit=10)
+        assert len(facts) == 0
+    finally:
+        refreshed_service.repository.session_factory.close()
 
 
 def test_fact_retire_rejects_missing_fact(
@@ -333,16 +351,19 @@ def test_fact_list_shows_recorded_household_facts(
     )
 
     service = original_build_household_fact_service(data_dir=tmp_path)
-    service.record(
-        subject="Wi-Fi SSID",
-        value="WorldHouseNet",
-    )
+    try:
+        service.record(
+            subject="Wi-Fi SSID",
+            value="WorldHouseNet",
+        )
 
-    result = runner.invoke(cli.app, ["fact", "list"])
+        result = runner.invoke(cli.app, ["fact", "list"])
 
-    assert result.exit_code == 0
-    assert "Wi-Fi SSID" in result.stdout
-    assert "WorldHouseNet" in result.stdout
+        assert result.exit_code == 0
+        assert "Wi-Fi SSID" in result.stdout
+        assert "WorldHouseNet" in result.stdout
+    finally:
+        service.repository.session_factory.close()
 
 
 def test_fact_list_shows_no_household_facts_message_when_empty(
@@ -386,21 +407,24 @@ def test_fact_list_hides_retired_household_facts(
     )
 
     service = original_build_household_fact_service(data_dir=tmp_path)
-    fact = service.record(
-        subject="Guest Wi-Fi password",
-        value="OldPassword123",
-    )
-    service.retire(
-        fact_id=fact.id,
-        reason="Password changed after router replacement",
-    )
+    try:
+        fact = service.record(
+            subject="Guest Wi-Fi password",
+            value="OldPassword123",
+        )
+        service.retire(
+            fact_id=fact.id,
+            reason="Password changed after router replacement",
+        )
 
-    result = runner.invoke(cli.app, ["fact", "list"])
+        result = runner.invoke(cli.app, ["fact", "list"])
 
-    assert result.exit_code == 0
-    assert "Guest Wi-Fi password" not in result.stdout
-    assert "OldPassword123" not in result.stdout
-    assert "No household facts found." in result.stdout
+        assert result.exit_code == 0
+        assert "Guest Wi-Fi password" not in result.stdout
+        assert "OldPassword123" not in result.stdout
+        assert "No household facts found." in result.stdout
+    finally:
+        service.repository.session_factory.close()
 
 
 def test_fact_list_accepts_short_limit_alias(
@@ -421,20 +445,24 @@ def test_fact_list_accepts_short_limit_alias(
     )
 
     service = original_build_household_fact_service(data_dir=tmp_path)
-    service.record(
-        subject="First fact",
-        value="First value",
-    )
-    service.record(
-        subject="Second fact",
-        value="Second value",
-    )
+    try:
+        service.record(
+            subject="First fact",
+            value="First value",
+        )
+        service.record(
+            subject="Second fact",
+            value="Second value",
+        )
 
-    result = runner.invoke(cli.app, ["fact", "list", "-n", "1"])
+        result = runner.invoke(cli.app, ["fact", "list", "-n", "1"])
 
-    assert result.exit_code == 0
-    assert "Second fact" in result.stdout
-    assert "First fact" not in result.stdout
+        assert result.exit_code == 0
+        assert "Second fact" in result.stdout
+        assert "First fact" not in result.stdout
+    finally:
+        service.repository.session_factory.close()
+
 
 def test_fact_list_shows_details_when_present(
     monkeypatch,
@@ -454,15 +482,18 @@ def test_fact_list_shows_details_when_present(
     )
 
     service = original_build_household_fact_service(data_dir=tmp_path)
-    service.record(
-        subject="Water shutoff valve",
-        value="Under kitchen sink",
-        details="Turn clockwise to close",
-    )
+    try:
+        service.record(
+            subject="Water shutoff valve",
+            value="Under kitchen sink",
+            details="Turn clockwise to close",
+        )
 
-    result = runner.invoke(cli.app, ["fact", "list"])
+        result = runner.invoke(cli.app, ["fact", "list"])
 
-    assert result.exit_code == 0
-    assert "Water shutoff valve" in result.stdout
-    assert "Under kitchen sink" in result.stdout
-    assert "Details: Turn clockwise to close" in result.stdout
+        assert result.exit_code == 0
+        assert "Water shutoff valve" in result.stdout
+        assert "Under kitchen sink" in result.stdout
+        assert "Details: Turn clockwise to close" in result.stdout
+    finally:
+        service.repository.session_factory.close()

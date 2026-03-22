@@ -30,10 +30,13 @@ def test_note_capture_saves_note_and_prints_confirmation(
     assert "[1] Remember the milk" in result.stdout
 
     service = original_build_note_service(data_dir=tmp_path)
-    notes = service.list_recent(limit=10)
+    try:
+        notes = service.list_recent(limit=10)
 
-    assert len(notes) == 1
-    assert notes[0].text == "Remember the milk"
+        assert len(notes) == 1
+        assert notes[0].text == "Remember the milk"
+    finally:
+        service.repository.session_factory.close()
 
 
 def test_note_capture_rejects_empty_note() -> None:

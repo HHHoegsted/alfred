@@ -3,455 +3,115 @@ from pathlib import Path
 import pytest
 
 from alfred.bootstrap import init_sqlalchemy
-from alfred.repositories import ProcedureRepository
-from alfred.services import ProcedureService
+from alfred.repositories import PersonRepository
+from alfred.services import PersonService
 
 
-def test_procedure_service_record_saves_procedure(
-    tmp_path: Path,
-) -> None:
+def test_person_service_register_saves_person(tmp_path: Path) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-    service = ProcedureService(repository)
+    repository = PersonRepository(session_factory)
+    service = PersonService(repository)
 
     try:
-        procedure_record = service.record(
-            subject="Internet is down",
-            procedure="Check router power before restarting anything.",
-            category="Troubleshooting",
-            details="If only one device is affected, start there.",
+        person = service.register(
+            name="Sara",
+            is_household_member=True,
         )
 
-        assert procedure_record.id is not None
-        assert procedure_record.subject == "Internet is down"
-        assert (
-            procedure_record.procedure
-            == "Check router power before restarting anything."
-        )
-        assert procedure_record.category == "Troubleshooting"
-        assert (
-            procedure_record.details
-            == "If only one device is affected, start there."
-        )
+        assert person.id is not None
+        assert person.name == "Sara"
+        assert person.is_household_member is True
 
-        procedures = service.list_recent(limit=10)
-        assert len(procedures) == 1
-        assert procedures[0].subject == "Internet is down"
-        assert (
-            procedures[0].procedure
-            == "Check router power before restarting anything."
-        )
-        assert procedures[0].category == "Troubleshooting"
-        assert procedures[0].details == "If only one device is affected, start there."
+        people = service.list_recent(limit=10)
+        assert len(people) == 1
+        assert people[0].name == "Sara"
+        assert people[0].is_household_member is True
     finally:
         session_factory.close()
 
 
-def test_procedure_service_record_rejects_empty_subject(
-    tmp_path: Path,
-) -> None:
+def test_person_service_register_strips_name(tmp_path: Path) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-    service = ProcedureService(repository)
+    repository = PersonRepository(session_factory)
+    service = PersonService(repository)
 
     try:
-        with pytest.raises(ValueError, match="Subject cannot be empty."):
-            service.record(
-                subject="   ",
-                procedure="Check router power before restarting anything.",
-                category="Troubleshooting",
-                details="If only one device is affected, start there.",
+        person = service.register(
+            name="  Sara  ",
+            is_household_member=True,
+        )
+
+        assert person.name == "Sara"
+    finally:
+        session_factory.close()
+
+
+def test_person_service_register_rejects_empty_name(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = PersonRepository(session_factory)
+    service = PersonService(repository)
+
+    try:
+        with pytest.raises(ValueError, match="Person name cannot be empty."):
+            service.register(
+                name="   ",
+                is_household_member=True,
             )
     finally:
         session_factory.close()
 
 
-def test_procedure_service_record_rejects_empty_procedure(
+def test_person_service_list_recent_returns_newest_first(
     tmp_path: Path,
 ) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-    service = ProcedureService(repository)
+    repository = PersonRepository(session_factory)
+    service = PersonService(repository)
 
     try:
-        with pytest.raises(ValueError, match="Procedure cannot be empty."):
-            service.record(
-                subject="Internet is down",
-                procedure="   ",
-                category="Troubleshooting",
-                details="If only one device is affected, start there.",
-            )
+        service.register(
+            name="HH",
+            is_household_member=True,
+        )
+        service.register(
+            name="Guest",
+            is_household_member=False,
+        )
+
+        people = service.list_recent(limit=10)
+
+        assert len(people) == 2
+        assert people[0].name == "Guest"
+        assert people[1].name == "HH"
     finally:
         session_factory.close()
 
 
-def test_procedure_service_record_strips_inputs(
+def test_person_service_list_recent_respects_limit(
     tmp_path: Path,
 ) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-    service = ProcedureService(repository)
+    repository = PersonRepository(session_factory)
+    service = PersonService(repository)
 
     try:
-        procedure_record = service.record(
-            subject="  Internet is down  ",
-            procedure="  Check router power before restarting anything.  ",
-            category="  Troubleshooting  ",
-            details="  If only one device is affected, start there.  ",
+        service.register(
+            name="HH",
+            is_household_member=True,
+        )
+        service.register(
+            name="Sara",
+            is_household_member=True,
+        )
+        service.register(
+            name="Guest",
+            is_household_member=False,
         )
 
-        assert procedure_record.subject == "Internet is down"
-        assert (
-            procedure_record.procedure
-            == "Check router power before restarting anything."
-        )
-        assert procedure_record.category == "Troubleshooting"
-        assert (
-            procedure_record.details
-            == "If only one device is affected, start there."
-        )
-    finally:
-        session_factory.close()
+        people = service.list_recent(limit=2)
 
-
-def test_procedure_service_record_normalizes_blank_optional_fields_to_none(
-    tmp_path: Path,
-) -> None:
-    session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-    service = ProcedureService(repository)
-
-    try:
-        procedure_record = service.record(
-            subject="Internet is down",
-            procedure="Check router power before restarting anything.",
-            category="   ",
-            details="   ",
-        )
-
-        assert procedure_record.category is None
-        assert procedure_record.details is None
-    finally:
-        session_factory.close()
-
-
-def test_procedure_service_update_updates_existing_procedure(
-    tmp_path: Path,
-) -> None:
-    session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-    service = ProcedureService(repository)
-
-    try:
-        procedure_record = service.record(
-            subject="Internet is down",
-            procedure="Check router power before restarting anything.",
-            category="Troubleshooting",
-            details="If only one device is affected, start there.",
-        )
-
-        updated_procedure = service.update(
-            procedure_id=procedure_record.id,
-            procedure="Check router power, modem lights, and ISP status.",
-            category="Connectivity",
-            details="Restart equipment only after outage checks.",
-        )
-
-        assert updated_procedure.id == procedure_record.id
-        assert updated_procedure.subject == "Internet is down"
-        assert (
-            updated_procedure.procedure
-            == "Check router power, modem lights, and ISP status."
-        )
-        assert updated_procedure.category == "Connectivity"
-        assert (
-            updated_procedure.details
-            == "Restart equipment only after outage checks."
-        )
-        assert updated_procedure.updated_at is not None
-    finally:
-        session_factory.close()
-
-
-def test_procedure_service_update_rejects_missing_procedure(
-    tmp_path: Path,
-) -> None:
-    session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-    service = ProcedureService(repository)
-
-    try:
-        with pytest.raises(
-            ValueError,
-            match="Procedure 9999 was not found.",
-        ):
-            service.update(
-                procedure_id=9999,
-                procedure="Check router power, modem lights, and ISP status.",
-                category="Connectivity",
-                details="Restart equipment only after outage checks.",
-            )
-    finally:
-        session_factory.close()
-
-
-def test_procedure_service_update_rejects_retired_procedure(
-    tmp_path: Path,
-) -> None:
-    session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-    service = ProcedureService(repository)
-
-    try:
-        procedure_record = service.record(
-            subject="Internet is down",
-            procedure="Check router power before restarting anything.",
-            category="Troubleshooting",
-            details="If only one device is affected, start there.",
-        )
-        service.retire(procedure_id=procedure_record.id)
-
-        with pytest.raises(
-            ValueError,
-            match=(
-                f"Procedure {procedure_record.id} is retired and cannot be updated."
-            ),
-        ):
-            service.update(
-                procedure_id=procedure_record.id,
-                procedure="Check router power, modem lights, and ISP status.",
-                category="Connectivity",
-                details="Restart equipment only after outage checks.",
-            )
-    finally:
-        session_factory.close()
-
-
-def test_procedure_service_update_rejects_empty_procedure(
-    tmp_path: Path,
-) -> None:
-    session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-    service = ProcedureService(repository)
-
-    try:
-        procedure_record = service.record(
-            subject="Internet is down",
-            procedure="Check router power before restarting anything.",
-            category="Troubleshooting",
-            details="If only one device is affected, start there.",
-        )
-
-        with pytest.raises(ValueError, match="Procedure cannot be empty."):
-            service.update(
-                procedure_id=procedure_record.id,
-                procedure="   ",
-                category="Connectivity",
-                details="Restart equipment only after outage checks.",
-            )
-    finally:
-        session_factory.close()
-
-
-def test_procedure_service_update_normalizes_blank_optional_fields_to_none(
-    tmp_path: Path,
-) -> None:
-    session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-    service = ProcedureService(repository)
-
-    try:
-        procedure_record = service.record(
-            subject="Internet is down",
-            procedure="Check router power before restarting anything.",
-            category="Troubleshooting",
-            details="If only one device is affected, start there.",
-        )
-
-        updated_procedure = service.update(
-            procedure_id=procedure_record.id,
-            procedure="Check router power, modem lights, and ISP status.",
-            category="   ",
-            details="   ",
-        )
-
-        assert updated_procedure.category is None
-        assert updated_procedure.details is None
-    finally:
-        session_factory.close()
-
-
-def test_procedure_service_retire_retires_existing_procedure(
-    tmp_path: Path,
-) -> None:
-    session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-    service = ProcedureService(repository)
-
-    try:
-        procedure_record = service.record(
-            subject="Water leak under sink",
-            procedure="Turn off the local shutoff valve first.",
-            category="Emergency",
-            details=None,
-        )
-
-        retired_procedure = service.retire(
-            procedure_id=procedure_record.id,
-            reason="Replaced by updated plumbing playbook",
-        )
-
-        assert retired_procedure.id == procedure_record.id
-        assert retired_procedure.retired_at is not None
-        assert (
-            retired_procedure.retired_reason
-            == "Replaced by updated plumbing playbook"
-        )
-
-        procedures = service.list_recent(limit=10)
-        assert len(procedures) == 0
-    finally:
-        session_factory.close()
-
-
-def test_procedure_service_retire_rejects_missing_procedure(
-    tmp_path: Path,
-) -> None:
-    session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-    service = ProcedureService(repository)
-
-    try:
-        with pytest.raises(
-            ValueError,
-            match="Procedure 9999 was not found.",
-        ):
-            service.retire(
-                procedure_id=9999,
-                reason="No longer active",
-            )
-    finally:
-        session_factory.close()
-
-
-def test_procedure_service_retire_rejects_already_retired_procedure(
-    tmp_path: Path,
-) -> None:
-    session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-    service = ProcedureService(repository)
-
-    try:
-        procedure_record = service.record(
-            subject="Water leak under sink",
-            procedure="Turn off the local shutoff valve first.",
-            category="Emergency",
-            details=None,
-        )
-        service.retire(
-            procedure_id=procedure_record.id,
-            reason="Replaced by updated plumbing playbook",
-        )
-
-        with pytest.raises(
-            ValueError,
-            match=f"Procedure {procedure_record.id} is already retired.",
-        ):
-            service.retire(
-                procedure_id=procedure_record.id,
-                reason="No longer active",
-            )
-    finally:
-        session_factory.close()
-
-
-def test_procedure_service_retire_normalizes_blank_reason_to_none(
-    tmp_path: Path,
-) -> None:
-    session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-    service = ProcedureService(repository)
-
-    try:
-        procedure_record = service.record(
-            subject="Water leak under sink",
-            procedure="Turn off the local shutoff valve first.",
-            category="Emergency",
-            details=None,
-        )
-
-        retired_procedure = service.retire(
-            procedure_id=procedure_record.id,
-            reason="   ",
-        )
-
-        assert retired_procedure.retired_at is not None
-        assert retired_procedure.retired_reason is None
-    finally:
-        session_factory.close()
-
-
-def test_procedure_service_list_recent_returns_newest_first(
-    tmp_path: Path,
-) -> None:
-    session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-    service = ProcedureService(repository)
-
-    try:
-        service.record(
-            subject="First procedure",
-            procedure="First step.",
-            category=None,
-            details=None,
-        )
-        service.record(
-            subject="Second procedure",
-            procedure="Second step.",
-            category=None,
-            details=None,
-        )
-
-        procedures = service.list_recent(limit=10)
-
-        assert len(procedures) == 2
-        assert procedures[0].subject == "Second procedure"
-        assert procedures[1].subject == "First procedure"
-    finally:
-        session_factory.close()
-
-
-def test_procedure_service_list_recent_respects_limit(
-    tmp_path: Path,
-) -> None:
-    session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = ProcedureRepository(session_factory)
-    service = ProcedureService(repository)
-
-    try:
-        service.record(
-            subject="First procedure",
-            procedure="First step.",
-            category=None,
-            details=None,
-        )
-        service.record(
-            subject="Second procedure",
-            procedure="Second step.",
-            category=None,
-            details=None,
-        )
-        service.record(
-            subject="Third procedure",
-            procedure="Third step.",
-            category=None,
-            details=None,
-        )
-
-        procedures = service.list_recent(limit=2)
-
-        assert len(procedures) == 2
-        assert procedures[0].subject == "Third procedure"
-        assert procedures[1].subject == "Second procedure"
+        assert len(people) == 2
+        assert people[0].name == "Guest"
+        assert people[1].name == "Sara"
     finally:
         session_factory.close()

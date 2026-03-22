@@ -43,11 +43,17 @@ def test_decision_record_records_decision(
     assert "[1] Use Home Assistant for house orchestration" in result.stdout
 
     service = original_build_decision_record_service(data_dir=tmp_path)
-    records = service.list_recent(limit=10)
+    try:
+        records = service.list_recent(limit=10)
 
-    assert len(records) == 1
-    assert records[0].summary == "Use Home Assistant for house orchestration"
-    assert records[0].reason == "It provides a stable integration point for Alfred"
+        assert len(records) == 1
+        assert records[0].summary == "Use Home Assistant for house orchestration"
+        assert (
+            records[0].reason
+            == "It provides a stable integration point for Alfred"
+        )
+    finally:
+        service.repository.session_factory.close()
 
 
 def test_decision_record_rejects_blank_summary(
@@ -134,16 +140,19 @@ def test_decision_list_shows_recorded_decisions(
     )
 
     service = original_build_decision_record_service(data_dir=tmp_path)
-    service.record(
-        summary="Use Home Assistant for house orchestration",
-        reason="It provides a stable integration point for Alfred",
-    )
+    try:
+        service.record(
+            summary="Use Home Assistant for house orchestration",
+            reason="It provides a stable integration point for Alfred",
+        )
 
-    result = runner.invoke(cli.app, ["decision", "list"])
+        result = runner.invoke(cli.app, ["decision", "list"])
 
-    assert result.exit_code == 0
-    assert "Use Home Assistant for house orchestration" in result.stdout
-    assert "It provides a stable integration point for Alfred" in result.stdout
+        assert result.exit_code == 0
+        assert "Use Home Assistant for house orchestration" in result.stdout
+        assert "It provides a stable integration point for Alfred" in result.stdout
+    finally:
+        service.repository.session_factory.close()
 
 
 def test_decision_list_shows_no_decision_records_message_when_empty(
@@ -187,17 +196,20 @@ def test_decision_list_accepts_short_limit_alias(
     )
 
     service = original_build_decision_record_service(data_dir=tmp_path)
-    service.record(
-        summary="First decision",
-        reason="First reason",
-    )
-    service.record(
-        summary="Second decision",
-        reason="Second reason",
-    )
+    try:
+        service.record(
+            summary="First decision",
+            reason="First reason",
+        )
+        service.record(
+            summary="Second decision",
+            reason="Second reason",
+        )
 
-    result = runner.invoke(cli.app, ["decision", "list", "-n", "1"])
+        result = runner.invoke(cli.app, ["decision", "list", "-n", "1"])
 
-    assert result.exit_code == 0
-    assert "Second decision" in result.stdout
-    assert "First decision" not in result.stdout
+        assert result.exit_code == 0
+        assert "Second decision" in result.stdout
+        assert "First decision" not in result.stdout
+    finally:
+        service.repository.session_factory.close()
