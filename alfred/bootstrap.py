@@ -7,6 +7,7 @@ from alfred.repositories import (
     CareInstructionRepository,
     DecisionRecordRepository,
     HouseholdFactRepository,
+    MaintenanceRecordRepository,
     NoteRepository,
     PersonRepository,
     ProcedureRepository,
@@ -17,6 +18,7 @@ from alfred.services import (
     CareInstructionService,
     DecisionRecordService,
     HouseholdFactService,
+    MaintenanceRecordService,
     NoteService,
     PersonService,
     ProcedureService,
@@ -106,3 +108,13 @@ def build_procedure_service(
     data_dir: Path | None = None,
 ) -> ProcedureService:
     return _build_service(data_dir, ProcedureRepository, ProcedureService)
+
+
+def build_maintenance_record_service(
+    data_dir: Path | None = None,
+) -> MaintenanceRecordService:
+    return _build_service(
+        data_dir,
+        MaintenanceRecordRepository,
+        MaintenanceRecordService,
+    )

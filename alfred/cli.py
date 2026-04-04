@@ -5,6 +5,7 @@ from alfred.commands.care_instructions import care_instruction_app
 from alfred.commands.decisions import decision_app
 from alfred.commands.fact import fact_app
 from alfred.commands.help_memory import help_memory
+from alfred.commands.maintenance_records import maintenance_record_app
 from alfred.commands.notes import notes_app
 from alfred.commands.person_context import person_app
 from alfred.commands.procedures import procedure_app
@@ -20,6 +21,7 @@ app.add_typer(asset_app, name="asset")
 app.add_typer(care_instruction_app, name="care")
 app.add_typer(decision_app, name="decision")
 app.add_typer(fact_app, name="fact")
+app.add_typer(maintenance_record_app, name="maintenance")
 app.add_typer(notes_app, name="note")
 app.add_typer(person_app, name="person")
 app.add_typer(procedure_app, name="procedure")
