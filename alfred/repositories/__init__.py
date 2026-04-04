@@ -2,6 +2,7 @@ from .asset_repository import AssetRepository
 from .care_instruction_repository import CareInstructionRepository
 from .decision_record_repository import DecisionRecordRepository
 from .household_fact_repository import HouseholdFactRepository
+from .maintenance_record_repository import MaintenanceRecordRepository
 from .note_repository import NoteRepository
 from .person_repository import PersonRepository
 from .procedure_repository import ProcedureRepository
@@ -12,6 +13,7 @@ __all__ = [
     "CareInstructionRepository",
     "DecisionRecordRepository",
     "HouseholdFactRepository",
+    "MaintenanceRecordRepository",
     "NoteRepository",
     "PersonRepository",
     "ProcedureRepository",
