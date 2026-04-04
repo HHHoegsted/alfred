@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from alfred.models import Purchase
 
@@ -45,6 +45,28 @@ class PurchaseRepository:
         statement = (
             select(Purchase)
             .where(Purchase.retired_at.is_(None))
+            .order_by(Purchase.created_at.desc(), Purchase.id.desc())
+            .limit(limit)
+        )
+
+        with self.session_factory.get_session() as session:
+            return list(session.scalars(statement))
+
+    def search(self, query: str, limit: int = 10) -> list[Purchase]:
+        pattern = f"%{query}%"
+        statement = (
+            select(Purchase)
+            .where(Purchase.retired_at.is_(None))
+            .where(
+                or_(
+                    Purchase.item_name.ilike(pattern),
+                    Purchase.vendor.ilike(pattern),
+                    Purchase.price_amount.ilike(pattern),
+                    Purchase.currency.ilike(pattern),
+                    Purchase.order_reference.ilike(pattern),
+                    Purchase.details.ilike(pattern),
+                )
+            )
             .order_by(Purchase.created_at.desc(), Purchase.id.desc())
             .limit(limit)
         )

@@ -210,3 +210,126 @@ def test_asset_list_accepts_short_limit_alias(
         assert "Bosch Oven" not in result.stdout
     finally:
         service.repository.session_factory.close()
+
+
+def test_asset_search_returns_matching_assets(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    original_build_asset_service = asset_commands.bootstrap.build_asset_service
+
+    def build_asset_service_for_test():
+        return original_build_asset_service(data_dir=tmp_path)
+
+    monkeypatch.setattr(
+        asset_commands.bootstrap,
+        "build_asset_service",
+        build_asset_service_for_test,
+    )
+
+    service = original_build_asset_service(data_dir=tmp_path)
+    try:
+        service.record(
+            name="Bosch Oven",
+            category="appliance",
+            location="Kitchen",
+            brand="Bosch",
+        )
+        service.record(
+            name="Dyson Vacuum",
+            category="cleaning",
+            location="Utility room",
+            brand="Dyson",
+        )
+        service.record(
+            name="Kitchen Mixer",
+            category="appliance",
+            location="Pantry",
+            brand="Kenwood",
+        )
+
+        result = runner.invoke(cli.app, ["asset", "search", "Kitchen"])
+
+        assert result.exit_code == 0
+        assert "Bosch Oven" in result.stdout
+        assert "Kitchen Mixer" in result.stdout
+        assert "Dyson Vacuum" not in result.stdout
+    finally:
+        service.repository.session_factory.close()
+
+
+def test_asset_search_shows_no_assets_message_when_no_matches(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    original_build_asset_service = asset_commands.bootstrap.build_asset_service
+
+    def build_asset_service_for_test():
+        return original_build_asset_service(data_dir=tmp_path)
+
+    monkeypatch.setattr(
+        asset_commands.bootstrap,
+        "build_asset_service",
+        build_asset_service_for_test,
+    )
+
+    service = original_build_asset_service(data_dir=tmp_path)
+    try:
+        service.record(name="Bosch Oven")
+
+        result = runner.invoke(cli.app, ["asset", "search", "Laundry"])
+
+        assert result.exit_code == 0
+        assert "No assets found." in result.stdout
+    finally:
+        service.repository.session_factory.close()
+
+
+def test_asset_search_rejects_blank_query(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    original_build_asset_service = asset_commands.bootstrap.build_asset_service
+
+    def build_asset_service_for_test():
+        return original_build_asset_service(data_dir=tmp_path)
+
+    monkeypatch.setattr(
+        asset_commands.bootstrap,
+        "build_asset_service",
+        build_asset_service_for_test,
+    )
+
+    result = runner.invoke(cli.app, ["asset", "search", "   "])
+
+    assert result.exit_code == 1
+    assert "Search query cannot be empty." in result.stdout
+
+
+def test_asset_search_accepts_short_limit_alias(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    original_build_asset_service = asset_commands.bootstrap.build_asset_service
+
+    def build_asset_service_for_test():
+        return original_build_asset_service(data_dir=tmp_path)
+
+    monkeypatch.setattr(
+        asset_commands.bootstrap,
+        "build_asset_service",
+        build_asset_service_for_test,
+    )
+
+    service = original_build_asset_service(data_dir=tmp_path)
+    try:
+        service.record(name="Kitchen Lamp")
+        service.record(name="Kitchen Shelf")
+
+        result = runner.invoke(cli.app, ["asset", "search", "Kitchen", "-n", "1"])
+
+        assert result.exit_code == 0
+        assert "Kitchen Shelf" in result.stdout
+        assert "Kitchen Lamp" not in result.stdout
+    finally:
+        service.repository.session_factory.close()

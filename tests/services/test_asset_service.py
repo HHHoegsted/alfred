@@ -157,3 +157,89 @@ def test_asset_service_list_recent_respects_limit(tmp_path: Path) -> None:
         assert assets[1].name == "Second asset"
     finally:
         session_factory.close()
+
+
+def test_asset_service_search_returns_matching_assets(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = AssetRepository(session_factory)
+    service = AssetService(repository)
+
+    try:
+        service.record(
+            name="Bosch Oven",
+            category="Appliance",
+            location="Kitchen",
+            brand="Bosch",
+        )
+        service.record(
+            name="Dyson Vacuum",
+            category="Cleaning",
+            location="Utility room",
+            brand="Dyson",
+        )
+        service.record(
+            name="Kitchen Mixer",
+            category="Appliance",
+            location="Pantry",
+            brand="Kenwood",
+        )
+
+        assets = service.search(query="Kitchen", limit=10)
+
+        assert len(assets) == 2
+        assert [asset.name for asset in assets] == [
+            "Kitchen Mixer",
+            "Bosch Oven",
+        ]
+    finally:
+        session_factory.close()
+
+
+def test_asset_service_search_respects_limit(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = AssetRepository(session_factory)
+    service = AssetService(repository)
+
+    try:
+        service.record(name="Kitchen Lamp")
+        service.record(name="Kitchen Shelf")
+        service.record(name="Kitchen Stool")
+
+        assets = service.search(query="Kitchen", limit=2)
+
+        assert len(assets) == 2
+        assert [asset.name for asset in assets] == [
+            "Kitchen Stool",
+            "Kitchen Shelf",
+        ]
+    finally:
+        session_factory.close()
+
+
+def test_asset_service_search_rejects_blank_query(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = AssetRepository(session_factory)
+    service = AssetService(repository)
+
+    try:
+        with pytest.raises(ValueError, match="Search query cannot be empty."):
+            service.search(query="   ", limit=10)
+    finally:
+        session_factory.close()
+
+
+def test_asset_service_search_strips_query(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = AssetRepository(session_factory)
+    service = AssetService(repository)
+
+    try:
+        service.record(name="Kitchen Lamp")
+        service.record(name="Desk Lamp")
+
+        assets = service.search(query="  Kitchen  ", limit=10)
+
+        assert len(assets) == 1
+        assert assets[0].name == "Kitchen Lamp"
+    finally:
+        session_factory.close()

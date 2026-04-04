@@ -98,3 +98,31 @@ def list_recent(
         return
 
     display_assets(assets)
+
+
+@asset_app.command("search")
+def search(
+    query: str = typer.Argument(..., help="Free-text search query."),
+    limit: int = typer.Option(
+        10,
+        "--limit",
+        "-n",
+        min=1,
+        help="Maximum number of matching assets to show.",
+    ),
+) -> None:
+    service = bootstrap.build_asset_service()
+
+    try:
+        assets = service.search(query=query, limit=limit)
+    except ValueError as exc:
+        typer.echo(str(exc))
+        raise typer.Exit(code=1) from exc
+    finally:
+        service.repository.session_factory.close()
+
+    if not assets:
+        typer.echo("No assets found.")
+        return
+
+    display_assets(assets)

@@ -2,92 +2,79 @@ from datetime import datetime
 from pathlib import Path
 
 from alfred.bootstrap import init_sqlalchemy
-from alfred.models import Purchase
 from alfred.repositories import PurchaseRepository
 
 
-def test_purchase_repository_create_and_list_recent(tmp_path: Path) -> None:
+def test_purchase_repository_create_saves_purchase(tmp_path: Path) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
     repository = PurchaseRepository(session_factory)
 
-    try:
-        created = repository.create(
-            item_name="Miele Vacuum Cleaner",
-            vendor="Power",
-            purchase_date=datetime(2026, 3, 18, 12, 0),
-            price_amount="3499.00",
-            currency="DKK",
-            order_reference="ORD-2026-0001",
-            details="Bought for the current home.",
-        )
-
-        assert created.id is not None
-        assert created.created_at is not None
-        assert created.item_name == "Miele Vacuum Cleaner"
-        assert created.vendor == "Power"
-        assert created.purchase_date == datetime(2026, 3, 18, 12, 0)
-        assert created.price_amount == "3499.00"
-        assert created.currency == "DKK"
-        assert created.order_reference == "ORD-2026-0001"
-        assert created.details == "Bought for the current home."
-
-        purchases = repository.list_recent(limit=10)
-
-        assert len(purchases) == 1
-        assert purchases[0].id == created.id
-        assert purchases[0].item_name == "Miele Vacuum Cleaner"
-        assert purchases[0].vendor == "Power"
-        assert purchases[0].purchase_date == datetime(2026, 3, 18, 12, 0)
-        assert purchases[0].price_amount == "3499.00"
-        assert purchases[0].currency == "DKK"
-        assert purchases[0].order_reference == "ORD-2026-0001"
-        assert purchases[0].details == "Bought for the current home."
-    finally:
-        session_factory.close()
-
-
-def test_purchase_repository_get_by_id_returns_purchase(
-    tmp_path: Path,
-) -> None:
-    session_factory = init_sqlalchemy(data_dir=tmp_path)
-    repository = PurchaseRepository(session_factory)
+    purchase_date = datetime(2026, 3, 1, 10, 30)
 
     try:
-        created = repository.create(
-            item_name="Miele Vacuum Cleaner",
+        purchase = repository.create(
+            item_name="Bosch Oven",
             vendor="Power",
-            purchase_date=datetime(2026, 3, 18, 12, 0),
-            price_amount="3499.00",
+            purchase_date=purchase_date,
+            price_amount="7499.95",
             currency="DKK",
-            order_reference="ORD-2026-0001",
-            details="Bought for the current home.",
+            order_reference="ORDER-123",
+            details="Kitchen oven purchase.",
         )
 
-        purchase = repository.get_by_id(created.id)
-
-        assert purchase is not None
-        assert purchase.id == created.id
-        assert purchase.item_name == "Miele Vacuum Cleaner"
+        assert purchase.id is not None
+        assert purchase.created_at is not None
+        assert purchase.retired_at is None
+        assert purchase.item_name == "Bosch Oven"
         assert purchase.vendor == "Power"
+        assert purchase.purchase_date == purchase_date
+        assert purchase.price_amount == "7499.95"
+        assert purchase.currency == "DKK"
+        assert purchase.order_reference == "ORDER-123"
+        assert purchase.details == "Kitchen oven purchase."
     finally:
         session_factory.close()
 
 
-def test_purchase_repository_get_by_id_returns_none_for_missing_purchase(
+def test_purchase_repository_get_by_id_returns_purchase(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = PurchaseRepository(session_factory)
+
+    try:
+        created = repository.create(
+            item_name="Bosch Oven",
+            vendor="Power",
+            purchase_date=datetime(2026, 3, 1, 10, 30),
+            price_amount="7499.95",
+            currency="DKK",
+            order_reference="ORDER-123",
+            details="Kitchen oven purchase.",
+        )
+
+        loaded = repository.get_by_id(created.id)
+
+        assert loaded is not None
+        assert loaded.id == created.id
+        assert loaded.item_name == "Bosch Oven"
+    finally:
+        session_factory.close()
+
+
+def test_purchase_repository_get_by_id_returns_none_when_missing(
     tmp_path: Path,
 ) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
     repository = PurchaseRepository(session_factory)
 
     try:
-        purchase = repository.get_by_id(9999)
+        loaded = repository.get_by_id(999)
 
-        assert purchase is None
+        assert loaded is None
     finally:
         session_factory.close()
 
 
-def test_purchase_repository_list_recent_returns_newest_first(
+def test_purchase_repository_list_recent_returns_active_purchases_newest_first(
     tmp_path: Path,
 ) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
@@ -97,7 +84,7 @@ def test_purchase_repository_list_recent_returns_newest_first(
         repository.create(
             item_name="First purchase",
             vendor=None,
-            purchase_date=datetime(2026, 3, 17, 12, 0),
+            purchase_date=None,
             price_amount=None,
             currency=None,
             order_reference=None,
@@ -106,7 +93,7 @@ def test_purchase_repository_list_recent_returns_newest_first(
         repository.create(
             item_name="Second purchase",
             vendor=None,
-            purchase_date=datetime(2026, 3, 18, 12, 0),
+            purchase_date=None,
             price_amount=None,
             currency=None,
             order_reference=None,
@@ -116,8 +103,54 @@ def test_purchase_repository_list_recent_returns_newest_first(
         purchases = repository.list_recent(limit=10)
 
         assert len(purchases) == 2
-        assert purchases[0].item_name == "Second purchase"
-        assert purchases[1].item_name == "First purchase"
+        assert [purchase.item_name for purchase in purchases] == [
+            "Second purchase",
+            "First purchase",
+        ]
+    finally:
+        session_factory.close()
+
+
+def test_purchase_repository_list_recent_respects_limit(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = PurchaseRepository(session_factory)
+
+    try:
+        repository.create(
+            item_name="First purchase",
+            vendor=None,
+            purchase_date=None,
+            price_amount=None,
+            currency=None,
+            order_reference=None,
+            details=None,
+        )
+        repository.create(
+            item_name="Second purchase",
+            vendor=None,
+            purchase_date=None,
+            price_amount=None,
+            currency=None,
+            order_reference=None,
+            details=None,
+        )
+        repository.create(
+            item_name="Third purchase",
+            vendor=None,
+            purchase_date=None,
+            price_amount=None,
+            currency=None,
+            order_reference=None,
+            details=None,
+        )
+
+        purchases = repository.list_recent(limit=2)
+
+        assert len(purchases) == 2
+        assert [purchase.item_name for purchase in purchases] == [
+            "Third purchase",
+            "Second purchase",
+        ]
     finally:
         session_factory.close()
 
@@ -129,19 +162,19 @@ def test_purchase_repository_list_recent_excludes_retired_purchases(
     repository = PurchaseRepository(session_factory)
 
     try:
-        retired_purchase = repository.create(
-            item_name="First purchase",
+        active = repository.create(
+            item_name="Active purchase",
             vendor=None,
-            purchase_date=datetime(2026, 3, 17, 12, 0),
+            purchase_date=None,
             price_amount=None,
             currency=None,
             order_reference=None,
             details=None,
         )
-        repository.create(
-            item_name="Second purchase",
+        retired = repository.create(
+            item_name="Retired purchase",
             vendor=None,
-            purchase_date=datetime(2026, 3, 18, 12, 0),
+            purchase_date=None,
             price_amount=None,
             currency=None,
             order_reference=None,
@@ -149,21 +182,18 @@ def test_purchase_repository_list_recent_excludes_retired_purchases(
         )
 
         with session_factory.get_session() as session:
-            purchase = session.get(Purchase, retired_purchase.id)
-            assert purchase is not None
-            purchase.retired_at = datetime(2026, 3, 19, 12, 0)
-            session.add(purchase)
+            stored_retired = session.get(type(retired), retired.id)
+            stored_retired.retired_at = stored_retired.created_at
             session.commit()
 
         purchases = repository.list_recent(limit=10)
 
-        assert len(purchases) == 1
-        assert purchases[0].item_name == "Second purchase"
+        assert [purchase.item_name for purchase in purchases] == [active.item_name]
     finally:
         session_factory.close()
 
 
-def test_purchase_repository_list_recent_respects_limit(
+def test_purchase_repository_search_returns_matching_active_purchases_newest_first(
     tmp_path: Path,
 ) -> None:
     session_factory = init_sqlalchemy(data_dir=tmp_path)
@@ -171,37 +201,160 @@ def test_purchase_repository_list_recent_respects_limit(
 
     try:
         repository.create(
-            item_name="First purchase",
-            vendor=None,
-            purchase_date=datetime(2026, 3, 17, 12, 0),
-            price_amount=None,
-            currency=None,
-            order_reference=None,
-            details=None,
+            item_name="Bosch Oven",
+            vendor="Power",
+            purchase_date=None,
+            price_amount="7499.95",
+            currency="DKK",
+            order_reference="ORDER-123",
+            details="Kitchen oven purchase.",
         )
         repository.create(
-            item_name="Second purchase",
-            vendor=None,
-            purchase_date=datetime(2026, 3, 18, 12, 0),
-            price_amount=None,
-            currency=None,
-            order_reference=None,
-            details=None,
+            item_name="Moccamaster",
+            vendor="Elgiganten",
+            purchase_date=None,
+            price_amount="1999.00",
+            currency="DKK",
+            order_reference="ORDER-456",
+            details="Coffee machine.",
         )
         repository.create(
-            item_name="Third purchase",
-            vendor=None,
-            purchase_date=datetime(2026, 3, 19, 12, 0),
-            price_amount=None,
-            currency=None,
-            order_reference=None,
-            details=None,
+            item_name="Kitchen Towels",
+            vendor="IKEA",
+            purchase_date=None,
+            price_amount="99.00",
+            currency="DKK",
+            order_reference="ORDER-789",
+            details="Blue kitchen textiles.",
         )
 
-        purchases = repository.list_recent(limit=2)
+        purchases = repository.search(query="Kitchen", limit=10)
 
         assert len(purchases) == 2
-        assert purchases[0].item_name == "Third purchase"
-        assert purchases[1].item_name == "Second purchase"
+        assert [purchase.item_name for purchase in purchases] == [
+            "Kitchen Towels",
+            "Bosch Oven",
+        ]
+    finally:
+        session_factory.close()
+
+
+def test_purchase_repository_search_matches_multiple_fields(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = PurchaseRepository(session_factory)
+
+    try:
+        repository.create(
+            item_name="Bosch Oven",
+            vendor="Power",
+            purchase_date=None,
+            price_amount="7499.95",
+            currency="DKK",
+            order_reference="ORDER-123",
+            details="Kitchen oven purchase.",
+        )
+        repository.create(
+            item_name="Moccamaster",
+            vendor="Elgiganten",
+            purchase_date=None,
+            price_amount="1999.00",
+            currency="DKK",
+            order_reference="ORDER-456",
+            details="Coffee machine.",
+        )
+
+        by_vendor = repository.search(query="Power", limit=10)
+        by_amount = repository.search(query="1999", limit=10)
+        by_currency = repository.search(query="DKK", limit=10)
+        by_reference = repository.search(query="ORDER-123", limit=10)
+        by_details = repository.search(query="coffee", limit=10)
+
+        assert [purchase.item_name for purchase in by_vendor] == ["Bosch Oven"]
+        assert [purchase.item_name for purchase in by_amount] == ["Moccamaster"]
+        assert len(by_currency) == 2
+        assert [purchase.item_name for purchase in by_reference] == ["Bosch Oven"]
+        assert [purchase.item_name for purchase in by_details] == ["Moccamaster"]
+    finally:
+        session_factory.close()
+
+
+def test_purchase_repository_search_respects_limit(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = PurchaseRepository(session_factory)
+
+    try:
+        repository.create(
+            item_name="Kitchen Lamp",
+            vendor=None,
+            purchase_date=None,
+            price_amount=None,
+            currency=None,
+            order_reference=None,
+            details=None,
+        )
+        repository.create(
+            item_name="Kitchen Shelf",
+            vendor=None,
+            purchase_date=None,
+            price_amount=None,
+            currency=None,
+            order_reference=None,
+            details=None,
+        )
+        repository.create(
+            item_name="Kitchen Stool",
+            vendor=None,
+            purchase_date=None,
+            price_amount=None,
+            currency=None,
+            order_reference=None,
+            details=None,
+        )
+
+        purchases = repository.search(query="Kitchen", limit=2)
+
+        assert len(purchases) == 2
+        assert [purchase.item_name for purchase in purchases] == [
+            "Kitchen Stool",
+            "Kitchen Shelf",
+        ]
+    finally:
+        session_factory.close()
+
+
+def test_purchase_repository_search_excludes_retired_purchases(
+    tmp_path: Path,
+) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+    repository = PurchaseRepository(session_factory)
+
+    try:
+        active = repository.create(
+            item_name="Kitchen Lamp",
+            vendor=None,
+            purchase_date=None,
+            price_amount=None,
+            currency=None,
+            order_reference=None,
+            details=None,
+        )
+        retired = repository.create(
+            item_name="Kitchen Shelf",
+            vendor=None,
+            purchase_date=None,
+            price_amount=None,
+            currency=None,
+            order_reference=None,
+            details=None,
+        )
+
+        with session_factory.get_session() as session:
+            stored_retired = session.get(type(retired), retired.id)
+            stored_retired.retired_at = stored_retired.created_at
+            session.commit()
+
+        purchases = repository.search(query="Kitchen", limit=10)
+
+        assert [purchase.item_name for purchase in purchases] == [active.item_name]
     finally:
         session_factory.close()

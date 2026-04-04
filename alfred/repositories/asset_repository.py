@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from alfred.models import Asset
 
@@ -43,6 +43,29 @@ class AssetRepository:
         statement = (
             select(Asset)
             .where(Asset.retired_at.is_(None))
+            .order_by(Asset.created_at.desc(), Asset.id.desc())
+            .limit(limit)
+        )
+
+        with self.session_factory.get_session() as session:
+            return list(session.scalars(statement))
+
+    def search(self, query: str, limit: int = 10) -> list[Asset]:
+        pattern = f"%{query}%"
+        statement = (
+            select(Asset)
+            .where(Asset.retired_at.is_(None))
+            .where(
+                or_(
+                    Asset.name.ilike(pattern),
+                    Asset.category.ilike(pattern),
+                    Asset.location.ilike(pattern),
+                    Asset.brand.ilike(pattern),
+                    Asset.model.ilike(pattern),
+                    Asset.serial_number.ilike(pattern),
+                    Asset.details.ilike(pattern),
+                )
+            )
             .order_by(Asset.created_at.desc(), Asset.id.desc())
             .limit(limit)
         )
