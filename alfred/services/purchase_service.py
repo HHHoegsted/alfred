@@ -58,3 +58,11 @@ class PurchaseService:
 
     def list_recent(self, limit: int = 10) -> list[Purchase]:
         return self.repository.list_recent(limit=limit)
+
+    def search(self, query: str, limit: int = 10) -> list[Purchase]:
+        query = query.strip()
+
+        if not query:
+            raise ValueError("Search query cannot be empty.")
+
+        return self.repository.search(query=query, limit=limit)

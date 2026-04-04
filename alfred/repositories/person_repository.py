@@ -30,3 +30,13 @@ class PersonRepository:
         )
         with self.session_factory.get_session() as session:
             return list(session.scalars(statement).all())
+
+    def search(self, query: str, limit: int = 10) -> list[Person]:
+        statement = (
+            select(Person)
+            .where(Person.name.ilike(f"%{query}%"))
+            .order_by(Person.created_at.desc(), Person.id.desc())
+            .limit(limit)
+        )
+        with self.session_factory.get_session() as session:
+            return list(session.scalars(statement).all())

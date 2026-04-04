@@ -70,3 +70,33 @@ def list_people(
         return
 
     display_people(people)
+
+@person_app.command("search")
+def search_people(
+    query: str = typer.Argument(
+        ...,
+        help="Free-text search query.",
+    ),
+    limit: int = typer.Option(
+        10,
+        "--limit",
+        "-n",
+        min=1,
+        help="Maximum number of matching people to show.",
+    ),
+) -> None:
+    service = bootstrap.build_person_service()
+
+    try:
+        people = service.search(query=query, limit=limit)
+    except ValueError as exc:
+        typer.echo(str(exc))
+        raise typer.Exit(code=1) from exc
+    finally:
+        service.repository.session_factory.close()
+
+    if not people:
+        typer.echo("No people found.")
+        return
+
+    display_people(people)

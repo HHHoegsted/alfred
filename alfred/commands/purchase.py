@@ -134,3 +134,31 @@ def list_purchases(
         return
 
     display_purchases(purchases)
+
+
+@purchase_app.command("search")
+def search_purchases(
+    query: str = typer.Argument(..., help="Free-text search query."),
+    limit: int = typer.Option(
+        10,
+        "--limit",
+        "-n",
+        min=1,
+        help="Maximum number of matching purchases to show.",
+    ),
+) -> None:
+    service = bootstrap.build_purchase_service()
+
+    try:
+        purchases = service.search(query=query, limit=limit)
+    except ValueError as exc:
+        typer.echo(str(exc))
+        raise typer.Exit(code=1) from exc
+    finally:
+        service.repository.session_factory.close()
+
+    if not purchases:
+        typer.echo("No purchases found.")
+        return
+
+    display_purchases(purchases)
