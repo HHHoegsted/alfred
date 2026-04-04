@@ -12,6 +12,7 @@ from alfred.repositories import (
     PersonRepository,
     ProcedureRepository,
     PurchaseRepository,
+    ReminderRepository,
 )
 from alfred.services import (
     AssetService,
@@ -23,6 +24,7 @@ from alfred.services import (
     PersonService,
     ProcedureService,
     PurchaseService,
+    ReminderService,
 )
 
 
@@ -118,3 +120,7 @@ def build_maintenance_record_service(
         MaintenanceRecordRepository,
         MaintenanceRecordService,
     )
+
+
+def build_reminder_service(data_dir: Path | None = None) -> ReminderService:
+    return _build_service(data_dir, ReminderRepository, ReminderService)
