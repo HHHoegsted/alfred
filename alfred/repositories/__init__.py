@@ -7,6 +7,7 @@ from .note_repository import NoteRepository
 from .person_repository import PersonRepository
 from .procedure_repository import ProcedureRepository
 from .purchase_repository import PurchaseRepository
+from .reminder_repository import ReminderRepository
 
 __all__ = [
     "AssetRepository",
@@ -18,4 +19,5 @@ __all__ = [
     "PersonRepository",
     "ProcedureRepository",
     "PurchaseRepository",
+    "ReminderRepository",
 ]

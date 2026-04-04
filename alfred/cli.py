@@ -10,6 +10,7 @@ from alfred.commands.notes import notes_app
 from alfred.commands.person_context import person_app
 from alfred.commands.procedures import procedure_app
 from alfred.commands.purchase import purchase_app
+from alfred.commands.reminders import reminder_app
 
 
 app = typer.Typer(
@@ -26,6 +27,7 @@ app.add_typer(notes_app, name="note")
 app.add_typer(person_app, name="person")
 app.add_typer(procedure_app, name="procedure")
 app.add_typer(purchase_app, name="purchase")
+app.add_typer(reminder_app, name="reminder")
 app.command("help-memory")(help_memory)
 
 

@@ -7,6 +7,7 @@ from .note_service import NoteService
 from .person_service import PersonService
 from .procedure_service import ProcedureService
 from .purchase_service import PurchaseService
+from .reminder_service import ReminderService
 
 __all__ = [
     "AssetService",
@@ -18,4 +19,5 @@ __all__ = [
     "PersonService",
     "ProcedureService",
     "PurchaseService",
+    "ReminderService",
 ]

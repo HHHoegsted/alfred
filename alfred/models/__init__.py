@@ -7,6 +7,7 @@ from .note import Note
 from .person import Person
 from .procedure import Procedure
 from .purchase import Purchase
+from .reminder import Reminder
 
 __all__ = [
     "Asset",
@@ -18,4 +19,5 @@ __all__ = [
     "Person",
     "Procedure",
     "Purchase",
+    "Reminder",
 ]

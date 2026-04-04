@@ -4,8 +4,10 @@ import sqlite3
 from alfred.bootstrap import (
     build_care_instruction_service,
     build_decision_record_service,
+    build_maintenance_record_service,
     build_person_service,
     build_procedure_service,
+    build_reminder_service,
     init_sqlalchemy,
 )
 
@@ -87,6 +89,60 @@ def test_init_sqlalchemy_creates_procedures_table(tmp_path: Path) -> None:
 
         assert row is not None
         assert row[0] == "procedures"
+    finally:
+        session_factory.close()
+
+
+def test_init_sqlalchemy_creates_maintenance_records_table(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+
+    try:
+        assert session_factory is not None
+
+        db_path = tmp_path / "alfred.db"
+        assert db_path.exists()
+
+        connection = sqlite3.connect(db_path)
+        try:
+            row = connection.execute(
+                """
+                SELECT name
+                FROM sqlite_master
+                WHERE type = 'table' AND name = 'maintenance_records'
+                """
+            ).fetchone()
+        finally:
+            connection.close()
+
+        assert row is not None
+        assert row[0] == "maintenance_records"
+    finally:
+        session_factory.close()
+
+
+def test_init_sqlalchemy_creates_reminders_table(tmp_path: Path) -> None:
+    session_factory = init_sqlalchemy(data_dir=tmp_path)
+
+    try:
+        assert session_factory is not None
+
+        db_path = tmp_path / "alfred.db"
+        assert db_path.exists()
+
+        connection = sqlite3.connect(db_path)
+        try:
+            row = connection.execute(
+                """
+                SELECT name
+                FROM sqlite_master
+                WHERE type = 'table' AND name = 'reminders'
+                """
+            ).fetchone()
+        finally:
+            connection.close()
+
+        assert row is not None
+        assert row[0] == "reminders"
     finally:
         session_factory.close()
 
@@ -219,5 +275,84 @@ def test_build_procedure_service_returns_working_service(
             procedures[0].procedure
             == "Check router power before restarting anything."
         )
+    finally:
+        service.repository.session_factory.close()
+
+
+def test_build_maintenance_record_service_returns_working_service(
+    tmp_path: Path,
+) -> None:
+    service = build_maintenance_record_service(data_dir=tmp_path)
+
+    try:
+        created = service.record(
+            subject="Dishwasher filter cleaning",
+            performed_at="2026-04-05T10:30:00",
+            details="Removed and rinsed the filter and checked the drain well.",
+            category="Appliance",
+            notes="Filter had a small amount of debris buildup.",
+        )
+        maintenance_records = service.list_recent()
+
+        created_id = created.id
+        created_at = created.created_at
+        created_subject = created.subject
+        created_performed_at = created.performed_at
+        created_details = created.details
+        created_category = created.category
+        created_notes = created.notes
+
+        assert created_id is not None
+        assert created_at is not None
+        assert created_subject == "Dishwasher filter cleaning"
+        assert created_performed_at.isoformat() == "2026-04-05T10:30:00"
+        assert (
+            created_details
+            == "Removed and rinsed the filter and checked the drain well."
+        )
+        assert created_category == "Appliance"
+        assert created_notes == "Filter had a small amount of debris buildup."
+
+        assert len(maintenance_records) == 1
+        assert maintenance_records[0].subject == "Dishwasher filter cleaning"
+        assert (
+            maintenance_records[0].performed_at.isoformat()
+            == "2026-04-05T10:30:00"
+        )
+    finally:
+        service.repository.session_factory.close()
+
+
+def test_build_reminder_service_returns_working_service(
+    tmp_path: Path,
+) -> None:
+    service = build_reminder_service(data_dir=tmp_path)
+
+    try:
+        created = service.record(
+            title="Replace smoke alarm batteries",
+            cadence="Twice a year",
+            details="Check all alarms in the house and replace batteries as needed.",
+        )
+        reminders = service.list_recent()
+
+        created_id = created.id
+        created_at = created.created_at
+        created_title = created.title
+        created_cadence = created.cadence
+        created_details = created.details
+
+        assert created_id is not None
+        assert created_at is not None
+        assert created_title == "Replace smoke alarm batteries"
+        assert created_cadence == "Twice a year"
+        assert (
+            created_details
+            == "Check all alarms in the house and replace batteries as needed."
+        )
+
+        assert len(reminders) == 1
+        assert reminders[0].title == "Replace smoke alarm batteries"
+        assert reminders[0].cadence == "Twice a year"
     finally:
         service.repository.session_factory.close()
